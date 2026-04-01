@@ -1,0 +1,1 @@
+{"rewrites":[{"source":"/","destination":"/html/landing.html"},{"source":"/(.*)","destination":"/$1"}]}
