@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TurfSphere</title>
+</head>
+<body>
+<script src="/js/app.js"></script>
+<script>
+  // If logged in → go to dashboard, else → landing page
+  if (Auth.loggedIn()) {
+    const r = Auth.role();
+    window.location.replace(r === 'admin' ? 'admin-dashboard.html' : r === 'owner' ? 'owner-dashboard.html' : 'home.html');
+  } else {
+    window.location.replace('landing.html');
+  }
+</script>
+</body>
+</html>

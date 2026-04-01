@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Find Players – TurfSphere</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .listing-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;transition:.22s;}
+    .listing-card:hover{border-color:var(--info);box-shadow:0 8px 28px rgba(0,0,0,.35);}
+    .lc-header{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+    .lc-avatar{width:46px;height:46px;background:linear-gradient(135deg,var(--info),#6366f1);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;}
+    .lc-name{font-weight:700;font-size:15px;color:var(--text);}
+    .lc-since{font-size:12px;color:var(--muted);}
+    .lc-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+    .lc-badge{display:flex;align-items:center;gap:5px;background:var(--navy);border:1px solid var(--border);border-radius:50px;padding:4px 11px;font-size:12.5px;color:var(--muted);}
+    .lc-badge i{color:var(--info);}
+    .lc-msg{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;border-left:2px solid var(--info);padding-left:12px;font-style:italic;}
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;}
+    .modal-bg.open{display:flex;}
+    .skill-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;}
+    .skill-beg{background:#f59e0b;}.skill-int{background:#3b82f6;}.skill-adv{background:#22c55e;}
+    .sport-pill{padding:6px 14px;border-radius:50px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Poppins',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:.2s;}
+    .sport-pill.active{background:var(--info);border-color:var(--info);color:#fff;}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="page-hdr">
+    <div><h2><i class="fas fa-users" style="color:var(--info);margin-right:8px;"></i>Find Players</h2><p>Connect with players in your area looking for a game</p></div>
+    <button class="btn btn-info" onclick="openPostModal()"><i class="fas fa-plus"></i> Post a Request</button>
+  </div>
+
+  <!-- Sport filter -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;" id="sportFilter">
+    <button class="sport-pill active" data-sport="all" onclick="filterBySport('all',this)">🏆 All Sports</button>
+    <button class="sport-pill" data-sport="Football" onclick="filterBySport('Football',this)">⚽ Football</button>
+    <button class="sport-pill" data-sport="Cricket" onclick="filterBySport('Cricket',this)">🏏 Cricket</button>
+    <button class="sport-pill" data-sport="Basketball" onclick="filterBySport('Basketball',this)">🏀 Basketball</button>
+    <button class="sport-pill" data-sport="Tennis" onclick="filterBySport('Tennis',this)">🎾 Tennis</button>
+    <button class="sport-pill" data-sport="Badminton" onclick="filterBySport('Badminton',this)">🏸 Badminton</button>
+  </div>
+
+  <div id="listings" class="grid-turfs"></div>
+</div>
+
+<!-- Post Modal -->
+<div class="modal-bg" id="postModal">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" onclick="closePostModal()"><i class="fas fa-times"></i></button>
+    <h3 style="margin-bottom:20px;"><i class="fas fa-plus-circle" style="color:var(--info);margin-right:8px;"></i>Post a Player Request</h3>
+    <div class="form-group"><label class="form-label">Sport</label><select id="pSport" class="form-select"><option>Football</option><option>Cricket</option><option>Basketball</option><option>Tennis</option><option>Badminton</option></select></div>
+    <div class="form-group"><label class="form-label">Preferred Date</label><input type="date" id="pDate" class="form-input"></div>
+    <div class="form-group"><label class="form-label">Preferred Time</label><input type="time" id="pTime" class="form-input"></div>
+    <div class="form-group"><label class="form-label">Location / Area</label><input type="text" id="pLoc" class="form-input" placeholder="e.g. Indore, MP"></div>
+    <div class="form-group"><label class="form-label">Players Needed</label><input type="number" id="pNeed" class="form-input" placeholder="e.g. 3" min="1" max="20"></div>
+    <div class="form-group"><label class="form-label">Skill Level</label><select id="pSkill" class="form-select"><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select></div>
+    <div class="form-group"><label class="form-label">Message (optional)</label><textarea id="pMsg" class="form-textarea" placeholder="Any notes for potential teammates..."></textarea></div>
+    <button class="btn btn-info btn-full" onclick="submitPost()"><i class="fas fa-paper-plane"></i> Post Request</button>
+  </div>
+</div>
+
+<!-- Contact Modal -->
+<div class="modal-bg" id="contactModal">
+  <div class="modal" style="max-width:400px;">
+    <button class="modal-close" onclick="document.getElementById('contactModal').classList.remove('open')"><i class="fas fa-times"></i></button>
+    <h3 style="margin-bottom:16px;"><i class="fas fa-envelope" style="color:var(--info);margin-right:8px;"></i>Contact Player</h3>
+    <p style="color:var(--muted);font-size:13.5px;line-height:1.7;">In a full deployment, this would send a message to the player. For now, connect by sharing your contact in-person after matching!</p>
+    <div style="background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:16px;margin:14px 0;text-align:center;">
+      <div style="font-size:26px;margin-bottom:8px;">🤝</div>
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px;">Feature Coming Soon</div>
+      <div style="font-size:12.5px;color:var(--muted);">In-app messaging between players</div>
+    </div>
+    <button class="btn btn-info btn-full" onclick="document.getElementById('contactModal').classList.remove('open')">Got It!</button>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  guard();
+  buildNav();
+
+  const user = Auth.getUser();
+  let currentSport = 'all';
+
+  // Demo listings (in production these would come from a DB table)
+  let listings = JSON.parse(localStorage.getItem('ts_player_listings') || 'null') || [
+    {id:1,name:'Rahul Sharma',sport:'Football',date:'2025-05-10',time:'18:00',location:'Vijay Nagar, Indore',need:3,skill:'Intermediate',msg:'Looking for 3 players for a 6v6 match. Weekend warriors welcome!',initials:'RS',posted:'2h ago'},
+    {id:2,name:'Priya Patel',sport:'Cricket',date:'2025-05-12',time:'07:00',location:'Scheme 54, Indore',need:4,skill:'Beginner',msg:'Morning match at Green Arena. Anyone can join, just bring energy!',initials:'PP',posted:'5h ago'},
+    {id:3,name:'Aditya Kumar',sport:'Badminton',date:'2025-05-11',time:'20:00',location:'Palasia, Indore',need:1,skill:'Advanced',msg:'Need one more for doubles. Must be comfortable playing competitively.',initials:'AK',posted:'1d ago'},
+    {id:4,name:'Sneha Verma',sport:'Tennis',date:'2025-05-13',time:'09:00',location:'Race Course Rd',need:1,skill:'Intermediate',msg:'Looking for a tennis partner for regular weekend sessions.',initials:'SV',posted:'2d ago'},
+    {id:5,name:'Karan Singh',sport:'Football',date:'2025-05-14',time:'16:00',location:'Bhawarkua, Indore',need:5,skill:'Beginner',msg:'Organizing a friendly 7v7 match. New players encouraged!',initials:'KS',posted:'3h ago'},
+  ];
+
+  function render(){
+    const list=currentSport==='all'?listings:listings.filter(l=>l.sport===currentSport);
+    const g=document.getElementById('listings');
+    if(!list.length){g.innerHTML='<div class="empty" style="grid-column:1/-1"><i class="fas fa-users-slash"></i><h3>No requests for this sport</h3><p>Be the first to post a player request!</p><button class="btn btn-info" onclick="openPostModal()"><i class="fas fa-plus"></i> Post Request</button></div>';return;}
+    const skillClass={Beginner:'skill-beg',Intermediate:'skill-int',Advanced:'skill-adv'};
+    g.innerHTML=list.map(l=>`<div class="listing-card">
+      <div class="lc-header">
+        <div class="lc-avatar">${l.initials}</div>
+        <div><div class="lc-name">${l.name}</div><div class="lc-since">Posted ${l.posted}</div></div>
+        <span style="margin-left:auto;font-size:13px;font-weight:600;background:var(--navy);border:1px solid var(--border);border-radius:50px;padding:4px 12px;color:var(--muted);">${sportEmoji(l.sport)} ${l.sport}</span>
+      </div>
+      <div class="lc-meta">
+        <div class="lc-badge"><i class="fas fa-calendar"></i> ${l.date}</div>
+        <div class="lc-badge"><i class="fas fa-clock"></i> ${l.time}</div>
+        <div class="lc-badge"><i class="fas fa-map-marker-alt"></i> ${l.location}</div>
+        <div class="lc-badge"><i class="fas fa-users"></i> Need ${l.need} player${l.need!==1?'s':''}</div>
+        <div class="lc-badge"><span class="skill-dot ${skillClass[l.skill]}"></span>${l.skill}</div>
+      </div>
+      ${l.msg?`<div class="lc-msg">${l.msg}</div>`:''}
+      <button class="btn btn-info btn-sm" onclick="contactPlayer()"><i class="fas fa-paper-plane"></i> Connect</button>
+    </div>`).join('');
+  }
+
+  function sportEmoji(s){return{Football:'⚽',Cricket:'🏏',Basketball:'🏀',Tennis:'🎾',Badminton:'🏸'}[s]||'🏆';}
+
+  function filterBySport(sport,el){
+    currentSport=sport;
+    document.querySelectorAll('.sport-pill').forEach(b=>b.classList.remove('active'));
+    el.classList.add('active');
+    render();
+  }
+
+  function openPostModal(){
+    const d=new Date();d.setDate(d.getDate()+1);
+    document.getElementById('pDate').value=d.toISOString().split('T')[0];
+    document.getElementById('postModal').classList.add('open');
+  }
+  function closePostModal(){document.getElementById('postModal').classList.remove('open');}
+
+  function submitPost(){
+    const sport=document.getElementById('pSport').value;
+    const date=document.getElementById('pDate').value;
+    const time=document.getElementById('pTime').value;
+    const loc=document.getElementById('pLoc').value.trim();
+    const need=parseInt(document.getElementById('pNeed').value)||1;
+    const skill=document.getElementById('pSkill').value;
+    const msg=document.getElementById('pMsg').value.trim();
+    if(!date||!time||!loc){toast('Please fill date, time, and location','warning');return;}
+    const initials=(user?.name||'U').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    listings.unshift({id:Date.now(),name:user?.name||'Anonymous',sport,date,time,location:loc,need,skill,msg,initials,posted:'just now'});
+    localStorage.setItem('ts_player_listings',JSON.stringify(listings));
+    closePostModal();
+    render();
+    toast('Player request posted! 🎉');
+  }
+
+  function contactPlayer(){document.getElementById('contactModal').classList.add('open');}
+
+  render();
+</script>
+</body>
+</html>

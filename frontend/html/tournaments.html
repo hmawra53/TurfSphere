@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tournaments – TurfSphere</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .tourn-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:.22s;}
+    .tourn-card:hover{border-color:var(--orange);transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.4);}
+    .tc-banner{height:140px;position:relative;display:flex;align-items:flex-end;padding:14px;}
+    .tc-banner-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.75),transparent);}
+    .tc-sport-big{position:relative;z-index:1;font-size:32px;margin-right:10px;}
+    .tc-title{position:relative;z-index:1;font-size:1.05rem;font-weight:700;color:#fff;}
+    .tc-body{padding:18px;}
+    .tc-info{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;}
+    .tc-info span{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+    .prize-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.35);border-radius:50px;padding:5px 12px;font-size:13px;font-weight:700;color:var(--orange);}
+    .spots-bar{background:var(--navy);border-radius:50px;height:6px;overflow:hidden;margin:8px 0;}
+    .spots-fill{height:100%;background:linear-gradient(90deg,var(--green),#84cc16);border-radius:50px;transition:.4s;}
+    .status-pill{display:inline-flex;align-items:center;gap:5px;border-radius:50px;padding:3px 11px;font-size:11.5px;font-weight:700;}
+    .sp-open{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3);}
+    .sp-soon{background:rgba(245,158,11,.15);color:var(--warning);border:1px solid rgba(245,158,11,.3);}
+    .sp-full{background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.3);}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="page-hdr">
+    <div><h2><i class="fas fa-trophy" style="color:var(--orange);margin-right:8px;"></i>Tournaments</h2><p>Compete, win, earn glory. Local tournaments near you.</p></div>
+    <button class="btn btn-ghost" onclick="window.location.href='home.html'"><i class="fas fa-arrow-left"></i> Home</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats" style="margin-bottom:28px;">
+    <div class="stat"><div class="stat-ic" style="background:rgba(249,115,22,.15);"><i class="fas fa-trophy" style="color:var(--orange);"></i></div><div><div class="stat-val">12</div><div class="stat-lbl">Active Tournaments</div></div></div>
+    <div class="stat"><div class="stat-ic si-green"><i class="fas fa-users"></i></div><div><div class="stat-val">340+</div><div class="stat-lbl">Registered Teams</div></div></div>
+    <div class="stat"><div class="stat-ic" style="background:rgba(250,204,21,.15);"><i class="fas fa-medal" style="color:#facc15;"></i></div><div><div class="stat-val">₹2L+</div><div class="stat-lbl">Prize Pool</div></div></div>
+  </div>
+
+  <div id="tournGrid" class="grid-turfs"></div>
+</div>
+
+<!-- Register Modal -->
+<div class="modal-bg" id="regModal">
+  <div class="modal" style="max-width:440px;">
+    <button class="modal-close" onclick="document.getElementById('regModal').classList.remove('open')"><i class="fas fa-times"></i></button>
+    <h3 style="margin-bottom:16px;" id="regTitle">Register for Tournament</h3>
+    <div class="form-group"><label class="form-label">Team Name</label><input type="text" id="rTeam" class="form-input" placeholder="e.g. Storm FC"></div>
+    <div class="form-group"><label class="form-label">Captain Name</label><input type="text" id="rCap" class="form-input" placeholder="Your name"></div>
+    <div class="form-group"><label class="form-label">Contact Phone</label><input type="tel" id="rPhone" class="form-input" placeholder="Mobile number"></div>
+    <div class="form-group"><label class="form-label">No. of Players in Team</label><input type="number" id="rPlayers" class="form-input" placeholder="e.g. 7" min="1"></div>
+    <div style="background:var(--navy);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--muted);">
+      <i class="fas fa-info-circle" style="color:var(--info);margin-right:5px;"></i>
+      Registration fee (if any) will be collected at the venue. The organiser will contact you within 24 hours.
+    </div>
+    <button class="btn btn-orange btn-full" onclick="submitReg()"><i class="fas fa-check-circle"></i> Confirm Registration</button>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  guard();
+  buildNav();
+
+  const tournaments=[
+    {id:1,title:'Indore Premier League – Football',sport:'Football',emoji:'⚽',date:'May 20, 2025',venue:'GreenField Arena, Bangalore',format:'5v5 Knockout',prize:'₹15,000',spots:12,filled:8,fee:'₹500/team',status:'open',bg:'linear-gradient(135deg,#1e3a1e,#0f2a0f)'},
+    {id:2,title:'Box Cricket Cup 2025',sport:'Cricket',emoji:'🏏',date:'May 25, 2025',venue:'Cricket Hub, Delhi',format:'8 Teams Round Robin',prize:'₹25,000',spots:8,filled:6,fee:'₹800/team',status:'open',bg:'linear-gradient(135deg,#1a1a3e,#0f0f2a)'},
+    {id:3,title:'Weekend Warrior Badminton',sport:'Badminton',emoji:'🏸',date:'June 1, 2025',venue:'AceZone, Hyderabad',format:'Doubles Knockout',prize:'₹8,000',spots:16,filled:16,fee:'₹300/pair',status:'full',bg:'linear-gradient(135deg,#2d1a1a,#1a0f0f)'},
+    {id:4,title:'Hoop Dreams 3x3 Basketball',sport:'Basketball',emoji:'🏀',date:'June 7, 2025',venue:'Hoop Dreams, Chennai',format:'3x3 Street Ball',prize:'₹12,000',spots:10,filled:3,fee:'₹400/team',status:'open',bg:'linear-gradient(135deg,#2a1a0a,#1a0f00)'},
+    {id:5,title:'Summer Tennis Open',sport:'Tennis',emoji:'🎾',date:'June 14, 2025',venue:'AceZone Tennis, Mumbai',format:'Singles & Doubles',prize:'₹20,000',spots:20,filled:7,fee:'₹600/player',status:'open',bg:'linear-gradient(135deg,#0a2a1a,#00150a)'},
+    {id:6,title:'All-India Football Cup',sport:'Football',emoji:'⚽',date:'July 5, 2025',venue:'Elite Sports Hub, Ahmedabad',format:'7v7 League + Finals',prize:'₹50,000',spots:16,filled:4,fee:'₹1200/team',status:'soon',bg:'linear-gradient(135deg,#1a1a3e,#0a0a2a)'},
+  ];
+
+  let currentReg=null;
+
+  function render(){
+    document.getElementById('tournGrid').innerHTML=tournaments.map(t=>{
+      const pct=Math.round((t.filled/t.spots)*100);
+      const statusHtml=t.status==='open'?'<span class="status-pill sp-open"><i class="fas fa-circle" style="font-size:7px;"></i>Open</span>':t.status==='full'?'<span class="status-pill sp-full"><i class="fas fa-lock" style="font-size:9px;"></i>Full</span>':'<span class="status-pill sp-soon"><i class="fas fa-clock" style="font-size:9px;"></i>Coming Soon</span>';
+      return `<div class="tourn-card">
+        <div class="tc-banner" style="background:${t.bg};">
+          <div class="tc-banner-overlay"></div>
+          <span class="tc-sport-big">${t.emoji}</span>
+          <div class="tc-title">${t.title}</div>
+        </div>
+        <div class="tc-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            ${statusHtml}
+            <div class="prize-badge"><i class="fas fa-trophy"></i>${t.prize}</div>
+          </div>
+          <div class="tc-info">
+            <span><i class="fas fa-calendar"></i>${t.date}</span>
+            <span><i class="fas fa-map-marker-alt"></i>${t.venue}</span>
+            <span><i class="fas fa-sitemap"></i>${t.format}</span>
+            <span><i class="fas fa-rupee-sign"></i>${t.fee}</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px;"><i class="fas fa-users" style="color:var(--green);margin-right:4px;"></i>${t.filled}/${t.spots} teams registered</div>
+          <div class="spots-bar"><div class="spots-fill" style="width:${pct}%;${pct>=80?'background:linear-gradient(90deg,var(--warning),var(--orange));':''}"></div></div>
+          ${t.status==='open'?`<button class="btn btn-orange btn-sm" style="margin-top:12px;width:100%;" onclick="openReg(${t.id},'${t.title.replace(/'/g,"\\'")}')"><i class="fas fa-flag-checkered"></i> Register Team</button>`:t.status==='full'?`<button class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%;" disabled><i class="fas fa-lock"></i> Registration Full</button>`:`<button class="btn btn-warn btn-sm" style="margin-top:12px;width:100%;"><i class="fas fa-bell"></i> Notify Me When Open</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function openReg(id,title){
+    currentReg=id;
+    document.getElementById('regTitle').textContent='Register: '+title;
+    const user=Auth.getUser();
+    if(user){document.getElementById('rCap').value=user.name||'';document.getElementById('rPhone').value=user.phone||'';}
+    document.getElementById('regModal').classList.add('open');
+  }
+
+  function submitReg(){
+    const team=document.getElementById('rTeam').value.trim();
+    const cap=document.getElementById('rCap').value.trim();
+    const phone=document.getElementById('rPhone').value.trim();
+    if(!team||!cap||!phone){toast('Please fill all required fields','warning');return;}
+    document.getElementById('regModal').classList.remove('open');
+    toast('🏆 Team registered! You\'ll be contacted within 24 hours.');
+  }
+
+  render();
+</script>
+</body>
+</html>

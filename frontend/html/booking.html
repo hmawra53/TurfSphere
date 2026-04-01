@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Book Turf – TurfSphere</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:7px;margin:10px 0 18px;}
+    .slot-btn{padding:7px 4px;border-radius:8px;font-size:12px;font-weight:600;border:2px solid transparent;cursor:pointer;text-align:center;transition:.18s;line-height:1.3;}
+    .slot-btn.available{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:var(--green);}
+    .slot-btn.available:hover{background:rgba(34,197,94,.25);border-color:var(--green);transform:translateY(-1px);}
+    .slot-btn.booked{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--danger);cursor:not-allowed;opacity:.65;}
+    .slot-btn.locked{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.35);color:var(--warning);cursor:not-allowed;opacity:.75;}
+    .slot-btn.selected{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 2px 10px rgba(34,197,94,.35);}
+    .slot-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+    .slot-legend span{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);}
+    .leg-i{width:12px;height:12px;border-radius:3px;display:inline-block;}
+    .lock-timer{font-size:12px;color:var(--warning);text-align:center;padding:6px 10px;background:rgba(245,158,11,.1);border-radius:6px;margin-bottom:10px;display:none;}
+    .slot-loading{text-align:center;padding:20px;color:var(--muted);font-size:13px;}
+  </style>
+</head>
+<body>
+<div class="auth-bg" style="align-items:flex-start;padding-top:40px;">
+  <div class="auth-card" style="max-width:520px;">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div class="logo-icon" style="margin:0 auto 10px;background:var(--green-glow);"><i class="fas fa-calendar-check" style="color:var(--green);"></i></div>
+      <h2>Book Your Turf</h2>
+      <p id="turfTitle" style="color:var(--green);font-weight:600;margin-top:3px;"></p>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Your Name</label>
+      <div class="input-icon"><i class="fas fa-user"></i><input type="text" id="cname" class="form-input" placeholder="Full name"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone Number</label>
+      <div class="input-icon"><i class="fas fa-phone"></i><input type="tel" id="cphone" class="form-input" placeholder="Mobile number"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Booking Date</label>
+      <div class="input-icon"><i class="fas fa-calendar"></i><input type="date" id="bdate" class="form-input" onchange="onDateChange()"></div>
+    </div>
+
+    <!-- Slot Grid -->
+    <div id="slotsSection" style="display:none;">
+      <label class="form-label"><i class="fas fa-th" style="color:var(--green);margin-right:5px;"></i>Select Time Slot</label>
+      <div class="slot-legend">
+        <span><span class="leg-i" style="background:rgba(34,197,94,.4);"></span>Available</span>
+        <span><span class="leg-i" style="background:rgba(239,68,68,.4);"></span>Booked</span>
+        <span><span class="leg-i" style="background:rgba(245,158,11,.4);"></span>On Hold</span>
+        <span><span class="leg-i" style="background:var(--green);"></span>Selected</span>
+      </div>
+      <div id="slotGrid" class="slot-grid"><div class="slot-loading"><i class="fas fa-circle-notch fa-spin"></i> Loading slots…</div></div>
+      <div class="lock-timer" id="lockTimer"><i class="fas fa-lock"></i> Slot held for <strong id="lockCountdown">15:00</strong> — complete booking!</div>
+    </div>
+
+    <!-- Time display (read-only, set by slot selection) -->
+    <div id="timeInputs" style="display:none;">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Start Time</label>
+          <div class="input-icon"><i class="fas fa-clock"></i><input type="time" id="stime" class="form-input" readonly></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Time</label>
+          <div class="input-icon"><i class="fas fa-clock"></i><input type="time" id="etime" class="form-input" readonly></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Number of Players</label>
+      <div class="input-icon"><i class="fas fa-users"></i><input type="number" id="players" class="form-input" placeholder="e.g. 10" min="1" max="50"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Coupon Code <span style="color:var(--muted);text-transform:none;font-size:11px;">(optional)</span></label>
+      <div style="display:flex;gap:8px;">
+        <div class="input-icon" style="flex:1;"><i class="fas fa-tag"></i><input type="text" id="coupon" class="form-input" placeholder="e.g. FIRST20" style="text-transform:uppercase"></div>
+        <button class="btn btn-secondary btn-sm" onclick="applyCoupon()" style="flex-shrink:0;border-radius:var(--r-sm);">Apply</button>
+      </div>
+      <p id="couponMsg" style="font-size:12px;margin-top:5px;display:none;"></p>
+    </div>
+
+    <div class="price-box" id="priceBox" style="margin-bottom:18px;display:none;">
+      <div class="price-row"><span>Duration</span><span id="pdur" style="color:var(--text);">—</span></div>
+      <div class="price-row"><span>Price per hour</span><span id="pphr" style="color:var(--text);">—</span></div>
+      <div class="price-row" id="discRow" style="display:none;"><span>Discount</span><span id="pdisc" style="color:var(--green);">—</span></div>
+      <div class="price-row"><span><strong>Total</strong></span><span id="ptotal">—</span></div>
+    </div>
+
+    <button class="btn btn-green btn-full" id="bookBtn" onclick="doBook()"><i class="fas fa-arrow-right"></i> Proceed to Payment</button>
+    <div style="text-align:center;margin-top:14px;"><a href="home.html" style="color:var(--muted);font-size:13px;"><i class="fas fa-times"></i> Cancel</a></div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+guard();
+const turfId=localStorage.getItem('ts_turfId'),turfName=localStorage.getItem('ts_turfName')||'Selected Turf';
+let turfData=null,couponData=null,bookedSlots=[],selectedStart=null,selectedEnd=null,lockTimerInterval=null,lockExpiresAt=null;
+document.getElementById('turfTitle').textContent=turfName;
+document.getElementById('bdate').min=new Date().toISOString().split('T')[0];
+const me=Auth.getUser();
+if(me){document.getElementById('cname').value=me.name||'';document.getElementById('cphone').value=me.phone||'';}
+const HOURS=Array.from({length:17},(_,i)=>i+6);
+function slotLabel(h){const a=h>=12?'PM':'AM',d=h%12||12,nh=h+1,na=nh>=12?'PM':'AM';return `${d}${a}–${nh%12||12}${na}`;}
+function toHHMM(h){return `${String(h).padStart(2,'0')}:00`;}
+function isBooked(h){const s=toHHMM(h),e=toHHMM(h+1);return bookedSlots.some(b=>b.status!=='cancelled'&&!(b.end_time<=s||b.start_time>=e));}
+function isLocked(h){return bookedSlots.some(b=>b._locked&&!(b.end_time<=toHHMM(h)||b.start_time>=toHHMM(h+1)));}
+async function onDateChange(){
+  const date=document.getElementById('bdate').value;
+  if(!date||!turfData)return;
+  selectedStart=null;selectedEnd=null;
+  document.getElementById('stime').value='';document.getElementById('etime').value='';
+  document.getElementById('priceBox').style.display='none';document.getElementById('timeInputs').style.display='none';
+  clearLockTimer();await loadSlots(date);
+}
+async function loadSlots(date){
+  document.getElementById('slotsSection').style.display='block';
+  document.getElementById('slotGrid').innerHTML='<div class="slot-loading"><i class="fas fa-circle-notch fa-spin"></i> Loading slots…</div>';
+  try{bookedSlots=await api.get(`/api/bookings/slots?turf_id=${turfId}&date=${date}`);}catch(e){bookedSlots=[];}
+  renderSlots();
+}
+function renderSlots(){
+  document.getElementById('slotGrid').innerHTML=HOURS.map(h=>{
+    const bkd=isBooked(h),lck=isLocked(h),sel=selectedStart!==null&&h>=selectedStart&&h<selectedEnd;
+    const cls=bkd?'booked':lck?'locked':sel?'selected':'available';
+    return `<button class="slot-btn ${cls}" title="${bkd?'Already booked':lck?'On hold':'Click to select'}"
+      ${bkd||lck?'disabled':`onclick="selectSlot(${h})"`}>${slotLabel(h)}${bkd?'<br><small>Booked</small>':lck?'<br><small>On Hold</small>':''}</button>`;
+  }).join('');
+}
+function selectSlot(h){
+  if(selectedStart===null){selectedStart=h;selectedEnd=h+1;}
+  else if(h===selectedStart){selectedStart=null;selectedEnd=null;clearLockTimer();document.getElementById('timeInputs').style.display='none';document.getElementById('priceBox').style.display='none';document.getElementById('lockTimer').style.display='none';}
+  else{
+    const lo=Math.min(h,selectedStart),hi=Math.max(h,selectedStart)+1;
+    let conflict=false;for(let x=lo;x<hi;x++){if(isBooked(x)||isLocked(x)){conflict=true;break;}}
+    if(conflict){toast('Cannot select across a booked/held slot','warning');return;}
+    selectedStart=lo;selectedEnd=hi;
+  }
+  renderSlots();
+  if(selectedStart!==null){
+    const s=toHHMM(selectedStart),e=toHHMM(selectedEnd);
+    document.getElementById('stime').value=s;document.getElementById('etime').value=e;
+    document.getElementById('timeInputs').style.display='block';
+    calcPrice();lockSlot(s,e);
+  }
+}
+async function lockSlot(start,end){
+  const date=document.getElementById('bdate').value;
+  try{const r=await api.post('/api/bookings/lock',{turf_id:turfId,date,start_time:start,end_time:end});lockExpiresAt=r.expires_at;startLockTimer();}
+  catch(e){if(e.message.includes('booked')||e.message.includes('held')){toast(e.message,'error');selectedStart=null;selectedEnd=null;renderSlots();document.getElementById('timeInputs').style.display='none';document.getElementById('priceBox').style.display='none';await loadSlots(date);}}
+}
+function startLockTimer(){
+  clearLockTimer();const el=document.getElementById('lockCountdown');document.getElementById('lockTimer').style.display='block';
+  lockTimerInterval=setInterval(()=>{
+    const rem=Math.max(0,lockExpiresAt-Date.now());const m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
+    el.textContent=`${m}:${String(s).padStart(2,'0')}`;
+    if(rem<=0){clearLockTimer();toast('Slot hold expired. Re-select.','warning');selectedStart=null;selectedEnd=null;renderSlots();document.getElementById('timeInputs').style.display='none';document.getElementById('priceBox').style.display='none';document.getElementById('lockTimer').style.display='none';loadSlots(document.getElementById('bdate').value);}
+  },1000);
+}
+function clearLockTimer(){clearInterval(lockTimerInterval);document.getElementById('lockTimer').style.display='none';}
+function calcPrice(){
+  if(!turfData)return;const s=document.getElementById('stime').value,e=document.getElementById('etime').value;
+  if(!s||!e)return;const[sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);
+  const mins=(eh*60+em)-(sh*60+sm);if(mins<=0)return;
+  const dur=Math.round(mins/60*10)/10,base=Math.round(turfData.price*dur*100)/100;
+  const disc=couponData?Math.round(base*couponData.discount_pct/100):0;
+  document.getElementById('priceBox').style.display='block';
+  document.getElementById('pdur').textContent=`${dur} hr${dur!==1?'s':''}`;
+  document.getElementById('pphr').textContent=`₹${turfData.price}`;
+  document.getElementById('ptotal').textContent=`₹${base-disc}`;
+  const dr=document.getElementById('discRow');
+  if(disc>0){dr.style.display='flex';document.getElementById('pdisc').textContent=`- ₹${disc} (${couponData.discount_pct}%)`;}
+  else dr.style.display='none';
+}
+async function applyCoupon(){
+  const code=document.getElementById('coupon').value.trim().toUpperCase();if(!code){toast('Enter a coupon code','warning');return;}
+  const msg=document.getElementById('couponMsg');
+  // Calculate total: if slots selected use duration * price, else just hourly price for validation
+  const stime=document.getElementById('stime').value,etime=document.getElementById('etime').value;
+  let totalAmt=turfData?turfData.price:0;
+  if(turfData&&stime&&etime){
+    const [sh,sm]=stime.split(':').map(Number),[eh,em]=etime.split(':').map(Number);
+    const dur=Math.max(0,((eh*60+em)-(sh*60+sm))/60);
+    if(dur>0)totalAmt=Math.round(turfData.price*dur*100)/100;
+  }
+  try{const r=await api.post('/api/bookings/validate-coupon',{code,amount:totalAmt});couponData=r.coupon;couponData.discount_pct=r.discount_pct;msg.style.display='block';msg.style.color='var(--green)';msg.textContent=`✓ ${r.discount_pct}% off applied!`;calcPrice();}
+  catch(e2){couponData=null;msg.style.display='block';msg.style.color='var(--danger)';msg.textContent=e2.message;calcPrice();}
+}
+async function doBook(){
+  const cname=document.getElementById('cname').value.trim(),cphone=document.getElementById('cphone').value.trim();
+  const date=document.getElementById('bdate').value,stime=document.getElementById('stime').value,etime=document.getElementById('etime').value;
+  const players=document.getElementById('players').value,coupon=document.getElementById('coupon').value.trim().toUpperCase();
+  if(!cname||!cphone||!date||!stime||!etime||!players){toast('Please fill all fields','error');return;}
+  const btn=document.getElementById('bookBtn');setLoading(btn,true);
+  try{
+    const r=await api.post('/api/bookings',{turf_id:turfId,contact_name:cname,phone:cphone,date,start_time:stime,end_time:etime,players:parseInt(players),coupon_code:coupon||undefined});
+    try{await api.delete('/api/bookings/lock',{turf_id:turfId,date});}catch(_){}
+    clearLockTimer();
+    localStorage.setItem('ts_bookingId',r.booking.id);localStorage.setItem('ts_bookingAmount',r.booking.total_price);
+    toast('Booking created! Proceed to payment.');setTimeout(()=>window.location.href='payment.html',700);
+  }catch(e){toast(e.message,'error');setLoading(btn,false);}
+}
+async function loadTurf(){if(!turfId){window.location.href='home.html';return;}try{turfData=await api.get('/api/turfs/'+turfId);}catch(e){}}
+loadTurf();
+</script>
+</body>
+</html>

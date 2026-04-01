@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Register – TurfSphere</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .otp-inputs { display:flex; gap:10px; justify-content:center; margin:14px 0; }
+    .otp-box {
+      width:44px; height:52px; text-align:center; font-size:1.4rem; font-weight:700;
+      border:2px solid var(--border); border-radius:10px; background:var(--navy);
+      color:var(--text); outline:none; transition:.2s;
+    }
+    .otp-box:focus { border-color:var(--green); box-shadow:0 0 0 3px var(--green-glow); }
+    .otp-box.filled { border-color:var(--green); }
+    .step-indicator { display:flex; align-items:center; gap:0; margin-bottom:22px; }
+    .step-dot { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+      font-size:12px; font-weight:700; transition:.3s; flex-shrink:0; }
+    .step-dot.done  { background:var(--green); color:#fff; }
+    .step-dot.active{ background:var(--green-glow); border:2px solid var(--green); color:var(--green); }
+    .step-dot.idle  { background:var(--border); color:var(--muted); }
+    .step-line { flex:1; height:2px; background:var(--border); transition:.3s; }
+    .step-line.done { background:var(--green); }
+    .phone-row { display:flex; gap:8px; align-items:flex-end; margin-bottom:6px; }
+    .phone-row .input-icon { flex:1; }
+    .slide-enter { animation: slideIn .35s ease; }
+    @keyframes slideIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  </style>
+</head>
+<body>
+<div class="auth-bg">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon"><i class="fas fa-user-plus"></i></div>
+      <h1>Join TurfSphere</h1>
+      <p id="stepLabel">Step 1 of 2 — Verify your number</p>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="step-indicator">
+      <div class="step-dot active" id="dot1">1</div>
+      <div class="step-line" id="line1"></div>
+      <div class="step-dot idle" id="dot2">2</div>
+    </div>
+
+    <!-- ══ STEP 1: Phone + OTP ══ -->
+    <div id="step1" class="slide-enter">
+      <label class="form-label">Mobile Number</label>
+      <div class="phone-row">
+        <div class="input-icon">
+          <i class="fas fa-phone"></i>
+          <input type="tel" id="phone" class="form-input" placeholder="10-digit mobile number" maxlength="10" oninput="onPhoneInput()">
+        </div>
+        <button class="btn btn-green btn-sm" id="sendOtpBtn" onclick="sendOtp()" style="border-radius:var(--r-sm);height:44px;flex-shrink:0;min-width:96px;" disabled>
+          <i class="fas fa-paper-plane"></i> Send OTP
+        </button>
+      </div>
+      <p id="phoneHint" style="font-size:12px;color:var(--muted);margin-bottom:14px;">Enter your 10-digit mobile number to receive OTP</p>
+
+      <!-- OTP section (hidden until sent) -->
+      <div id="otpSection" style="display:none;">
+        <label class="form-label" style="text-align:center;display:block;">Enter 6-digit OTP</label>
+        <div class="otp-inputs" id="otpInputs">
+          <input type="tel" maxlength="1" class="otp-box" id="o0" oninput="otpInput(this,0)" onkeydown="otpKey(event,0)">
+          <input type="tel" maxlength="1" class="otp-box" id="o1" oninput="otpInput(this,1)" onkeydown="otpKey(event,1)">
+          <input type="tel" maxlength="1" class="otp-box" id="o2" oninput="otpInput(this,2)" onkeydown="otpKey(event,2)">
+          <input type="tel" maxlength="1" class="otp-box" id="o3" oninput="otpInput(this,3)" onkeydown="otpKey(event,3)">
+          <input type="tel" maxlength="1" class="otp-box" id="o4" oninput="otpInput(this,4)" onkeydown="otpKey(event,4)">
+          <input type="tel" maxlength="1" class="otp-box" id="o5" oninput="otpInput(this,5)" onkeydown="otpKey(event,5)">
+        </div>
+        <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:6px;">
+          OTP expires in <span id="timerVal" style="color:var(--green);font-weight:600;">5:00</span>
+        </div>
+        <div style="text-align:center;margin-top:8px;">
+          <button class="btn btn-ghost btn-sm" id="resendBtn" onclick="sendOtp(true)" style="font-size:12px;" disabled>
+            <i class="fas fa-redo"></i> Resend OTP
+          </button>
+        </div>
+        <!-- Demo OTP notice -->
+        <div id="demoNotice" style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:9px 12px;margin-top:12px;font-size:12.5px;color:var(--green);display:none;">
+          <i class="fas fa-flask"></i> <strong>Demo mode:</strong> Your OTP is <strong id="demoOtp"></strong>
+        </div>
+        <button class="btn btn-green btn-full" id="verifyBtn" onclick="verifyOtp()" style="margin-top:14px;">
+          <i class="fas fa-check-circle"></i> Verify OTP
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ STEP 2: Account Details ══ -->
+    <div id="step2" style="display:none;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;padding:10px 14px;background:var(--green-glow);border:1px solid rgba(34,197,94,.3);border-radius:8px;">
+        <i class="fas fa-check-circle" style="color:var(--green);font-size:16px;"></i>
+        <span style="font-size:13px;color:var(--green);font-weight:600;" id="verifiedPhone"></span>
+        <span style="font-size:12px;color:var(--muted);">— verified ✓</span>
+      </div>
+
+      <label class="form-label">I want to</label>
+      <div class="role-tabs cols-2" style="margin-bottom:20px;">
+        <button class="role-tab active" data-role="user" onclick="setRole('user',this)"><i class="fas fa-running"></i> Play / Book</button>
+        <button class="role-tab" data-role="owner" onclick="setRole('owner',this)"><i class="fas fa-trophy"></i> List My Turf</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <div class="input-icon">
+          <i class="fas fa-user"></i>
+          <input type="text" id="name" class="form-input" placeholder="Your full name">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-icon" style="position:relative">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="password" class="form-input input-pw" placeholder="Min 6 characters">
+          <button class="pw-toggle" onclick="togglePw()"><i class="fas fa-eye" id="ei"></i></button>
+        </div>
+      </div>
+      <div id="strengthWrap" style="margin:-8px 0 14px;display:none;">
+        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+          <div id="sb" style="height:100%;width:0;background:var(--danger);transition:.3s;border-radius:2px;"></div>
+        </div>
+        <p id="sl" style="font-size:11.5px;margin-top:3px;color:var(--muted);"></p>
+      </div>
+
+      <button class="btn btn-green btn-full" id="regBtn" onclick="doRegister()">
+        <i class="fas fa-user-plus"></i> Create Account
+      </button>
+      <div style="text-align:center;margin-top:10px;">
+        <button class="btn btn-ghost btn-sm" onclick="goBack()" style="font-size:12px;">
+          <i class="fas fa-arrow-left"></i> Change Number
+        </button>
+      </div>
+    </div>
+
+    <div class="auth-footer" style="margin-top:14px;">
+      Already have an account? <a href="login.html">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  let selectedRole = 'user';
+  let phoneVerified = false;
+  let timerInterval = null;
+
+  function setRole(r, el) {
+    selectedRole = r;
+    document.querySelectorAll('.role-tab').forEach(t => t.classList.toggle('active', t === el));
+  }
+  function togglePw() {
+    const p = document.getElementById('password'), i = document.getElementById('ei');
+    p.type = p.type === 'password' ? 'text' : 'password';
+    i.className = p.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+  }
+  document.addEventListener('input', function(e) {
+    if (e.target.id !== 'password') return;
+    const v = e.target.value, w = document.getElementById('strengthWrap');
+    if (!v) { w.style.display='none'; return; }
+    w.style.display = 'block';
+    let s = 0;
+    if (v.length >= 6) s++; if (v.length >= 10) s++;
+    if (/[A-Z]/.test(v)) s++; if (/\d/.test(v)) s++; if (/[^A-Za-z0-9]/.test(v)) s++;
+    const cols=['#ef4444','#f59e0b','#f59e0b','#22c55e','#22c55e'];
+    const lbls=['Too weak','Weak','Fair','Strong','Very strong'];
+    document.getElementById('sb').style.cssText=`height:100%;width:${s*20}%;background:${cols[s-1]||'#ef4444'};transition:.3s;border-radius:2px;`;
+    document.getElementById('sl').textContent=lbls[s-1]||'';
+    document.getElementById('sl').style.color=cols[s-1]||'';
+  });
+
+  function onPhoneInput() {
+    const v = document.getElementById('phone').value.replace(/\D/g,'');
+    document.getElementById('phone').value = v;
+    document.getElementById('sendOtpBtn').disabled = v.length < 10;
+  }
+
+  async function sendOtp(resend = false) {
+    const phone = document.getElementById('phone').value.trim();
+    if (phone.length < 10) { toast('Enter a valid 10-digit number','error'); return; }
+    const btn = resend ? document.getElementById('resendBtn') : document.getElementById('sendOtpBtn');
+    setLoading(btn, true);
+    try {
+      const r = await api.post('/api/auth/send-otp', { phone });
+      document.getElementById('otpSection').style.display = 'block';
+      document.getElementById('phone').readOnly = true;
+      document.getElementById('sendOtpBtn').style.display = 'none';
+      document.getElementById('phoneHint').textContent = `OTP sent to +91 ${phone}`;
+      for(let i=0;i<6;i++) { const b=document.getElementById('o'+i); b.value=''; b.classList.remove('filled'); }
+      document.getElementById('o0').focus();
+      if (r.demo_otp) {
+        document.getElementById('demoNotice').style.display = 'block';
+        document.getElementById('demoOtp').textContent = r.demo_otp;
+      }
+      startTimer(300);
+      toast('OTP sent!', 'success');
+    } catch(e) { toast(e.message,'error'); }
+    setLoading(btn, false);
+  }
+
+  function startTimer(seconds) {
+    clearInterval(timerInterval);
+    document.getElementById('resendBtn').disabled = true;
+    const el = document.getElementById('timerVal');
+    el.style.color = 'var(--green)';
+    timerInterval = setInterval(() => {
+      const m = Math.floor(seconds/60), s = seconds%60;
+      el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+      seconds--;
+      if (seconds < 0) {
+        clearInterval(timerInterval);
+        el.textContent = 'Expired';
+        el.style.color = 'var(--danger)';
+        document.getElementById('resendBtn').disabled = false;
+      }
+    }, 1000);
+  }
+
+  function otpInput(el, idx) {
+    el.value = el.value.replace(/\D/g,'');
+    el.classList.toggle('filled', el.value.length > 0);
+    if (el.value && idx < 5) document.getElementById('o'+(idx+1)).focus();
+    const allFilled = Array.from({length:6},(_,i)=>document.getElementById('o'+i).value).every(v=>v);
+    if (allFilled) verifyOtp();
+  }
+  function otpKey(e, idx) {
+    if (e.key==='Backspace' && !document.getElementById('o'+idx).value && idx > 0)
+      document.getElementById('o'+(idx-1)).focus();
+    if (e.key==='ArrowLeft'  && idx > 0) document.getElementById('o'+(idx-1)).focus();
+    if (e.key==='ArrowRight' && idx < 5) document.getElementById('o'+(idx+1)).focus();
+  }
+
+  async function verifyOtp() {
+    const phone = document.getElementById('phone').value.trim();
+    const otp = Array.from({length:6},(_,i)=>document.getElementById('o'+i).value).join('');
+    if (otp.length < 6) { toast('Enter the complete 6-digit OTP','warning'); return; }
+    const btn = document.getElementById('verifyBtn');
+    setLoading(btn, true);
+    try {
+      await api.post('/api/auth/verify-otp', { phone, otp });
+      phoneVerified = true;
+      clearInterval(timerInterval);
+      document.getElementById('step1').style.display = 'none';
+      document.getElementById('step2').style.display = 'block';
+      document.getElementById('verifiedPhone').textContent = '+91 ' + phone;
+      document.getElementById('stepLabel').textContent = 'Step 2 of 2 — Create your account';
+      document.getElementById('dot1').className = 'step-dot done';
+      document.getElementById('dot1').innerHTML = '<i class="fas fa-check" style="font-size:11px;"></i>';
+      document.getElementById('line1').classList.add('done');
+      document.getElementById('dot2').className = 'step-dot active';
+      setTimeout(() => document.getElementById('name').focus(), 100);
+      toast('Phone verified!', 'success');
+    } catch(e) {
+      toast(e.message, 'error');
+      for(let i=0;i<6;i++) {
+        const b = document.getElementById('o'+i);
+        b.style.borderColor = 'var(--danger)';
+        setTimeout(() => { b.style.borderColor=''; b.classList.remove('filled'); b.value=''; }, 1200);
+      }
+      document.getElementById('o0').focus();
+    }
+    setLoading(btn, false);
+  }
+
+  function goBack() {
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('phone').readOnly = false;
+    document.getElementById('sendOtpBtn').style.display = '';
+    document.getElementById('otpSection').style.display = 'none';
+    document.getElementById('stepLabel').textContent = 'Step 1 of 2 — Verify your number';
+    document.getElementById('dot1').className = 'step-dot active';
+    document.getElementById('dot1').textContent = '1';
+    document.getElementById('line1').classList.remove('done');
+    document.getElementById('dot2').className = 'step-dot idle';
+    phoneVerified = false;
+    clearInterval(timerInterval);
+  }
+
+  async function doRegister() {
+    if (!phoneVerified) { toast('Please verify your mobile number first','error'); return; }
+    const phone    = document.getElementById('phone').value.trim();
+    const name     = document.getElementById('name').value.trim();
+    const password = document.getElementById('password').value;
+    if (!name||!password) { toast('Fill all fields','error'); return; }
+    if (password.length < 6) { toast('Password must be 6+ characters','error'); return; }
+    const btn = document.getElementById('regBtn');
+    setLoading(btn, true);
+    try {
+      await api.post('/api/auth/register', { name, phone, password, role: selectedRole });
+      toast('Account created! Redirecting to login…');
+      setTimeout(() => window.location.href = 'login.html', 900);
+    } catch(e) { toast(e.message,'error'); setLoading(btn, false); }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('step2').style.display !== 'none') doRegister();
+  });
+</script>
+</body>
+</html>

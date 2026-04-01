@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Turf Details – TurfSphere</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="container" id="main">
+  <div style="display:flex;justify-content:center;padding:60px;"><div class="spinner"></div></div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  guard();
+  buildNav({ search: false });
+
+  let turf = null, slideIdx = 0;
+
+  async function load() {
+    const id = localStorage.getItem('ts_turfId');
+    if (!id) { window.location.href = 'home.html'; return; }
+    try {
+      turf = await api.get('/api/turfs/' + id);
+      const reviews = await api.get('/api/turfs/' + id + '/reviews');
+      render(turf, reviews);
+    } catch(e) {
+      document.getElementById('main').innerHTML = `<div class="empty"><i class="fas fa-exclamation-triangle"></i><h3>Turf not found</h3><a href="home.html" class="btn btn-green" style="margin-top:16px;">Back to Home</a></div>`;
+    }
+  }
+
+  function render(t, reviews) {
+    const imgs = parseImages(t.image).length ? parseImages(t.image) : [FALLBACK_IMG];
+    const slidesHTML = imgs.map((img, i) =>
+      `<div class="slide ${i===0?'active':''}"><img src="${img}" alt="${t.name}" onerror="this.src='https://images.unsplash.com/photo-1556056504-5c7696c4c28d?w=800'"></div>`
+    ).join('');
+    const arrowsHTML = imgs.length > 1 ? `
+      <button class="slide-btn slide-prev" onclick="changeSlide(-1)"><i class="fas fa-chevron-left"></i></button>
+      <button class="slide-btn slide-next" onclick="changeSlide(1)"><i class="fas fa-chevron-right"></i></button>
+      <div class="slide-num" id="snum">1 / ${imgs.length}</div>` : '';
+
+    let amenities = [];
+    try { amenities = JSON.parse(t.amenities || '[]'); } catch(e) { amenities = []; }
+    const amenHTML = amenities.length ? `
+      <div style="margin-top:20px;">
+        <div class="section-title"><i class="fas fa-check-circle" style="color:var(--green)"></i> Amenities</div>
+        <div>${amenities.map(a=>`<span class="amenity"><i class="fas fa-check-circle"></i> ${a}</span>`).join('')}</div>
+      </div>` : '';
+
+    const reviewsHTML = reviews.length ? reviews.map(r => `
+      <div style="background:var(--navy);border:1px solid var(--border);border-radius:var(--r-sm);padding:13px 16px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-weight:600;font-size:13px;color:var(--text);">${r.user_name}</span>
+          <span style="color:#facc15;font-size:13px;">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</span>
+        </div>
+        ${r.review ? `<p style="font-size:13px;color:var(--muted);">${r.review}</p>` : ''}
+        <p style="font-size:11.5px;color:var(--border);margin-top:4px;">${fmtDate(r.created_at)}</p>
+      </div>`).join('') : `<p style="color:var(--muted);font-size:13px;">No reviews yet. Be the first to review!</p>`;
+
+    const si = sportIcon(t.sport);
+    document.getElementById('main').innerHTML = `
+      <div style="margin-bottom:18px;">
+        <a href="home.html" style="color:var(--muted);font-size:13px;"><i class="fas fa-arrow-left"></i> Back to Home</a>
+      </div>
+
+      <div class="details-grid">
+        <div>
+          <div class="carousel" style="margin-bottom:22px;">
+            ${slidesHTML}${arrowsHTML}
+          </div>
+
+          <div class="card" style="margin-bottom:22px;">
+            <div class="section-title"><i class="fas fa-info-circle" style="color:var(--green)"></i> About</div>
+            <p style="line-height:1.8;color:var(--muted);">${t.description || 'No description available.'}</p>
+            ${amenHTML}
+          </div>
+
+          <div class="card">
+            <div class="section-title"><i class="fas fa-star" style="color:var(--green)"></i> Reviews (${t.rating_count || 0})</div>
+            <div id="rateYours" style="margin-bottom:16px;">
+              <p style="font-size:13px;margin-bottom:8px;">Rate this turf:</p>
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <div class="stars" id="rateStars">${buildStars(0, t.id, true)}</div>
+                <input type="text" id="reviewText" class="form-input" style="flex:1;min-width:160px;font-size:13px;" placeholder="Leave a review (optional)">
+                <button class="btn btn-green btn-sm" onclick="submitReview('${t.id}')"><i class="fas fa-paper-plane"></i></button>
+              </div>
+            </div>
+            <div id="reviewsList">${reviewsHTML}</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="info-panel">
+            <h2 style="margin-bottom:8px;">${t.name}</h2>
+            <div class="stars" style="margin-bottom:16px;">${buildStars(t.rating, t.id, false)}</div>
+
+            <div class="drow"><i class="fas fa-map-marker-alt"></i>
+              <div><div class="dlbl">Location</div><div class="dval">${t.location}</div></div>
+            </div>
+            <div class="drow"><i class="fas ${si}"></i>
+              <div><div class="dlbl">Sport</div><div class="dval">${t.sport}</div></div>
+            </div>
+            <div class="drow"><i class="fas fa-rupee-sign"></i>
+              <div><div class="dlbl">Price</div><div class="dval" style="color:var(--green);font-size:1.15rem;">₹${t.price} <span style="font-size:13px;font-weight:400;color:var(--muted);">/ hr</span></div></div>
+            </div>
+            <div class="drow"><i class="fas fa-star"></i>
+              <div><div class="dlbl">Rating</div><div class="dval">${t.rating} ⭐ (${t.rating_count||0} reviews)</div></div>
+            </div>
+            ${t.owner_name ? `<div class="drow"><i class="fas fa-user-tie"></i>
+              <div><div class="dlbl">Owner</div><div class="dval">${t.owner_name}</div></div>
+            </div>` : ''}
+
+            <hr class="div">
+
+            <button class="btn btn-green btn-full" onclick="goBook('${t.id}', '${t.name.replace(/'/g,"\\'")}')">
+              <i class="fas fa-calendar-check"></i> Book Now
+            </button>
+            <button class="btn btn-ghost btn-full" onclick="window.location.href='home.html'" style="margin-top:10px;">
+              <i class="fas fa-arrow-left"></i> Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function changeSlide(d) {
+    const slides = document.querySelectorAll('.slide');
+    if (!slides.length) return;
+    slides[slideIdx].classList.remove('active');
+    slideIdx = (slideIdx + d + slides.length) % slides.length;
+    slides[slideIdx].classList.add('active');
+    const n = document.getElementById('snum');
+    if (n) n.textContent = `${slideIdx+1} / ${slides.length}`;
+  }
+
+  let selectedStars = 0;
+  async function rateTurf(id, stars) {
+    selectedStars = stars;
+    document.querySelectorAll('#rateStars .star').forEach((s,i) => s.classList.toggle('on', i < stars));
+  }
+
+  async function submitReview(id) {
+    if (!selectedStars) { toast('Please select a star rating first','warning'); return; }
+    const review = document.getElementById('reviewText').value.trim();
+    try {
+      await api.post(`/api/turfs/${id}/rate`, { stars: selectedStars, review });
+      toast('Review submitted!');
+      const reviews = await api.get('/api/turfs/' + id + '/reviews');
+      turf = await api.get('/api/turfs/' + id);
+      render(turf, reviews);
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  function goBook(id, name) {
+    localStorage.setItem('ts_turfId', id);
+    localStorage.setItem('ts_turfName', name);
+    window.location.href = 'booking.html';
+  }
+
+  load();
+</script>
+</body>
+</html>

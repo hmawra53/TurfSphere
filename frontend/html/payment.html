@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Payment – TurfSphere</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="auth-bg">
+  <div class="auth-card" style="max-width:420px;text-align:center;">
+
+    <div style="margin-bottom:20px;">
+      <div class="logo-icon" style="margin:0 auto 12px;background:rgba(34,197,94,.15);">
+        <i class="fas fa-qrcode" style="color:var(--green);font-size:28px;"></i>
+      </div>
+      <h2>Complete Payment</h2>
+      <p>Scan QR or use UPI to pay</p>
+    </div>
+
+    <!-- Booking summary -->
+    <div class="price-box" style="margin-bottom:18px;text-align:left;">
+      <div class="price-row"><span>Turf</span><span id="bTurf" style="color:var(--text);font-size:13px;">—</span></div>
+      <div class="price-row"><span>Date &amp; Time</span><span id="bTime" style="color:var(--text);font-size:13px;">—</span></div>
+      <div class="price-row"><span>Booking ID</span><span id="bId" style="color:var(--text);">—</span></div>
+      <div class="price-row"><span><strong>Amount</strong></span><span id="bAmt">—</span></div>
+    </div>
+
+    <!-- QR -->
+    <div style="display:flex;justify-content:center;margin:18px 0;">
+      <img id="qrImg" src="" alt="UPI QR" style="width:190px;height:190px;border:3px solid var(--green);border-radius:10px;padding:6px;background:#fff;">
+    </div>
+
+    <div style="background:var(--navy);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:18px;">
+      <p style="font-size:13px;color:var(--muted);margin:0;">
+        <i class="fas fa-shield-alt" style="color:var(--green);"></i>
+        UPI ID: <strong style="color:var(--text);">turfsphere@upi</strong>
+      </p>
+    </div>
+
+    <button class="btn btn-green btn-full" id="payBtn" onclick="confirmPay()">
+      <i class="fas fa-check-circle"></i> I've Paid – Confirm Booking
+    </button>
+
+    <div style="margin-top:14px;">
+      <a href="home.html" style="color:var(--muted);font-size:13px;"><i class="fas fa-times"></i> Cancel &amp; Go Back</a>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  guard();
+
+  const bookingId = localStorage.getItem('ts_bookingId');
+  const amount    = localStorage.getItem('ts_bookingAmount') || '0';
+  const turfName  = localStorage.getItem('ts_turfName') || 'Your Turf';
+
+  if (bookingId) document.getElementById('bId').textContent = '#' + bookingId;
+  document.getElementById('bAmt').textContent = '₹' + parseFloat(amount).toFixed(2);
+  document.getElementById('bTurf').textContent = turfName;
+  document.getElementById('qrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=turfsphere@upi%26pn=TurfSphere%26am=${amount}%26tn=Booking${bookingId}`;
+
+  async function loadBookingTime() {
+    if (!bookingId) return;
+    try {
+      const bookings = await api.get('/api/bookings/mine');
+      const b = bookings.find(x => String(x.id) === String(bookingId));
+      if (b) document.getElementById('bTime').textContent = `${fmtDate(b.date)}, ${fmtTime(b.start_time)} – ${fmtTime(b.end_time)}`;
+    } catch(e) {}
+  }
+
+  async function confirmPay() {
+    if (!bookingId) { toast('No booking found','error'); return; }
+    const btn = document.getElementById('payBtn');
+    setLoading(btn, true);
+    try {
+      await api.post(`/api/bookings/${bookingId}/confirm`, { payment_ref: 'UPI_' + Date.now() });
+      localStorage.setItem('ts_justBooked', 'true');
+      localStorage.removeItem('ts_bookingId');
+      localStorage.removeItem('ts_bookingAmount');
+      toast('Payment confirmed! Booking successful! 🎉');
+      setTimeout(() => window.location.href = 'user-dashboard.html', 900);
+    } catch(e) { toast(e.message,'error'); setLoading(btn, false); }
+  }
+
+  loadBookingTime();
+</script>
+</body>
+</html>

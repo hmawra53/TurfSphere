@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login – TurfSphere</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="auth-bg">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon"><i class="fas fa-futbol"></i></div>
+      <h1>TurfSphere</h1>
+      <p>Book your perfect sports turf</p>
+    </div>
+
+    <label class="form-label">Sign in as</label>
+    <div class="role-tabs cols-3" id="roleTabs">
+      <button class="role-tab active" data-role="user"  onclick="setRole('user',this)"><i class="fas fa-running"></i><br>Player</button>
+      <button class="role-tab"        data-role="owner" onclick="setRole('owner',this)"><i class="fas fa-trophy"></i><br>Owner</button>
+      <button class="role-tab"        data-role="admin" onclick="setRole('admin',this)"><i class="fas fa-shield-alt"></i><br>Admin</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Mobile Number</label>
+      <div class="input-icon">
+        <i class="fas fa-phone"></i>
+        <input type="tel" id="phone" class="form-input" placeholder="10-digit mobile number" autofocus>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <div class="input-icon" style="position:relative">
+        <i class="fas fa-lock"></i>
+        <input type="password" id="password" class="form-input input-pw" placeholder="Your password">
+        <button class="pw-toggle" onclick="togglePw()"><i class="fas fa-eye" id="eyeIcon"></i></button>
+      </div>
+    </div>
+
+    <button class="btn btn-green btn-full" id="loginBtn" onclick="doLogin()">
+      <i class="fas fa-sign-in-alt"></i> Login
+    </button>
+
+    <div class="auth-footer" style="margin-top:14px;">
+      <a href="forgot-password.html">Forgot password?</a>
+      &nbsp;·&nbsp;
+      <a href="register.html">Create account</a>
+    </div>
+
+    <div class="demo-hint">
+      <i class="fas fa-info-circle" style="color:var(--info)"></i>
+      Demo — Admin: <strong>0000000000</strong> / <strong>admin123</strong><br>
+      Owner: <strong>9999999999</strong> / <strong>owner123</strong>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  let selectedRole = 'user';
+  if (Auth.loggedIn()) goToDashboard();
+
+  function setRole(r, el) {
+    selectedRole = r;
+    document.querySelectorAll('.role-tab').forEach(t => t.classList.toggle('active', t === el));
+  }
+  function togglePw() {
+    const pw = document.getElementById('password');
+    const ic = document.getElementById('eyeIcon');
+    pw.type = pw.type === 'password' ? 'text' : 'password';
+    ic.className = pw.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+  }
+  async function doLogin() {
+    const phone    = document.getElementById('phone').value.trim();
+    const password = document.getElementById('password').value;
+    if (!phone || !password) { toast('Fill all fields', 'error'); return; }
+    const btn = document.getElementById('loginBtn');
+    setLoading(btn, true);
+    try {
+      const d = await api.post('/api/auth/login', { phone, password, role: selectedRole });
+      Auth.set(d.token, d.user);
+      toast('Welcome, ' + d.user.name + '!');
+      setTimeout(goToDashboard, 600);
+    } catch(e) { toast(e.message, 'error'); setLoading(btn, false); }
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+</script>
+</body>
+</html>

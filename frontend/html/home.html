@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TurfSphere – Find Turfs</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .filter-bar{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:22px;display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
+    .filter-bar .filter-group{display:flex;flex-direction:column;gap:5px;min-width:120px;}
+    .filter-bar label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+    .filter-bar select{background:var(--navy);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'Poppins',sans-serif;font-size:13px;padding:8px 12px;outline:none;cursor:pointer;}
+    .filter-bar select:focus{border-color:var(--green);}
+    .price-range{display:flex;align-items:center;gap:7px;}
+    .price-range input[type=range]{width:90px;accent-color:var(--green);}
+    .price-val{font-size:12px;font-weight:600;color:var(--green);min-width:50px;}
+    .view-toggle{display:flex;background:var(--navy-2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+    .vt-btn{padding:7px 13px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:14px;transition:.2s;}
+    .vt-btn.active{background:var(--green);color:#fff;}
+    .turf-list{display:flex;flex-direction:column;gap:14px;}
+    .turf-list-item{background:var(--card);border:1px solid var(--border);border-radius:14px;display:flex;overflow:hidden;transition:all .22s;cursor:pointer;}
+    .turf-list-item:hover{border-color:var(--green);transform:translateX(4px);box-shadow:0 8px 28px rgba(0,0,0,.35);}
+    .tli-img{width:180px;flex-shrink:0;object-fit:cover;}
+    .tli-body{padding:18px 20px;flex:1;display:flex;flex-direction:column;gap:6px;}
+    .tli-name{font-size:1.05rem;font-weight:700;color:var(--text);}
+    .tli-meta{display:flex;gap:16px;flex-wrap:wrap;}
+    .tli-meta span{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+    .tli-price{font-size:1.1rem;font-weight:700;color:var(--green);margin-top:auto;}
+    .tli-actions{display:flex;gap:8px;align-items:center;padding:18px 18px 18px 0;flex-direction:column;justify-content:center;}
+    .wish-btn{background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted);transition:.2s;padding:6px;}
+    .wish-btn.active{color:#ef4444;}
+    .wish-btn:hover{color:#ef4444;transform:scale(1.2);}
+    .result-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+    .result-bar p{font-size:13.5px;color:var(--muted);}
+    .active-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+    .af-chip{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:50px;padding:4px 12px 4px 10px;font-size:12px;color:var(--green);display:flex;align-items:center;gap:5px;cursor:pointer;}
+    .af-chip:hover{background:rgba(239,68,68,.1);border-color:var(--danger);color:var(--danger);}
+    .tab-switcher{display:flex;background:var(--navy-2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;}
+    .ts-btn{flex:1;padding:10px;border:none;background:transparent;color:var(--muted);font-family:'Poppins',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:7px;}
+    .ts-btn.active{background:var(--green);color:#fff;}
+    .find-players-banner{background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(59,130,246,.04));border:1px solid rgba(59,130,246,.3);border-radius:14px;padding:18px 22px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+    .fpb-left{display:flex;align-items:center;gap:14px;}
+    .fpb-icon{width:44px;height:44px;background:rgba(59,130,246,.2);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--info);font-size:20px;flex-shrink:0;}
+    .fpb-title{font-weight:700;font-size:15px;color:var(--text);}
+    .fpb-sub{font-size:12.5px;color:var(--muted);}
+    .compare-strip{position:fixed;bottom:0;left:0;right:0;background:var(--navy-2);border-top:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;gap:14px;z-index:999;transform:translateY(100%);transition:.3s;}
+    .compare-strip.visible{transform:translateY(0);}
+    .cmp-items{display:flex;gap:10px;flex:1;flex-wrap:wrap;}
+    .cmp-badge{background:var(--card);border:1px solid var(--green);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:7px;}
+    .cmp-badge button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0;}
+    @media(max-width:640px){.tli-img{width:110px;}.find-players-banner{flex-direction:column;align-items:flex-start;}}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="find-players-banner">
+    <div class="fpb-left">
+      <div class="fpb-icon"><i class="fas fa-users"></i></div>
+      <div>
+        <div class="fpb-title">Need Teammates? Find Players!</div>
+        <div class="fpb-sub">Connect with players in your area looking for a game at the same time</div>
+      </div>
+    </div>
+    <button class="btn btn-info btn-sm" onclick="window.location.href='find-players.html'"><i class="fas fa-search"></i> Find Players</button>
+  </div>
+
+  <div class="tab-switcher">
+    <button class="ts-btn active" id="tabAll" onclick="switchMainTab('all')"><i class="fas fa-th-large"></i> All Turfs <span id="allCnt" style="background:rgba(255,255,255,.15);border-radius:50px;padding:1px 8px;font-size:11px;"></span></button>
+    <button class="ts-btn" id="tabWish" onclick="switchMainTab('wishlist')"><i class="fas fa-heart"></i> Wishlist <span id="wishCnt" style="background:rgba(255,255,255,.15);border-radius:50px;padding:1px 8px;font-size:11px;"></span></button>
+  </div>
+
+  <div class="filter-bar" id="filterBar">
+    <div class="filter-group"><label>Sport</label><select id="fSport" onchange="applyFilters()"><option value="">All Sports</option><option>Football</option><option>Cricket</option><option>Basketball</option><option>Tennis</option><option>Badminton</option></select></div>
+    <div class="filter-group"><label>Sort By</label><select id="fSort" onchange="applyFilters()"><option value="default">Featured</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option><option value="rating">Highest Rated</option><option value="reviews">Most Reviewed</option></select></div>
+    <div class="filter-group"><label>Max Price / hr</label><div class="price-range"><input type="range" id="fPrice" min="200" max="3000" step="100" value="3000" oninput="updatePrice(this.value)"><span class="price-val" id="priceVal">Any</span></div></div>
+    <div class="filter-group"><label>Min Rating</label><select id="fRating" onchange="applyFilters()"><option value="0">Any</option><option value="3">3★+</option><option value="4">4★+</option><option value="4.5">4.5★+</option></select></div>
+    <div style="margin-left:auto;display:flex;align-items:flex-end;gap:10px;">
+      <div class="view-toggle"><button class="vt-btn active" id="viewGrid" onclick="setView('grid')"><i class="fas fa-th-large"></i></button><button class="vt-btn" id="viewList" onclick="setView('list')"><i class="fas fa-list"></i></button></div>
+      <button class="btn btn-ghost btn-sm" onclick="resetFilters()"><i class="fas fa-undo"></i> Reset</button>
+    </div>
+  </div>
+
+  <div class="active-filters" id="activeFilters"></div>
+  <div class="result-bar"><p id="resultTxt">Loading…</p><div style="display:flex;gap:8px;align-items:center;"><span style="font-size:12px;color:var(--muted);">Compare:</span><button class="btn btn-ghost btn-sm" id="compareBtn" onclick="openComparePage()" style="display:none;"><i class="fas fa-balance-scale"></i> Compare (<span id="compareCnt">0</span>)</button></div></div>
+  <div id="grid" class="grid-turfs"><div style="grid-column:1/-1;display:flex;justify-content:center;"><div class="spinner"></div></div></div>
+</div>
+
+<div class="compare-strip" id="compareStrip">
+  <div class="cmp-items" id="cmpItems"></div>
+  <button class="btn btn-green btn-sm" onclick="openComparePage()"><i class="fas fa-balance-scale"></i> Compare Now</button>
+  <button class="btn btn-ghost btn-sm" onclick="clearCompare()"><i class="fas fa-times"></i></button>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  guard();
+  buildNav({ search: true });
+  let allTurfs=[],view='grid',mainTab='all',maxPrice=3000;
+  let compareList=JSON.parse(localStorage.getItem('ts_compare')||'[]');
+  let wishlist=JSON.parse(localStorage.getItem('ts_wishlist')||'[]');
+
+  async function loadTurfs(){try{allTurfs=await api.get('/api/turfs');applyFilters();}catch(e){document.getElementById('grid').innerHTML='<div class="empty" style="grid-column:1/-1"><i class="fas fa-exclamation-triangle"></i><h3>Could not load turfs</h3><p>Make sure the backend server is running on port 3000</p></div>';}}
+
+  function updateWishCnt(){document.getElementById('wishCnt').textContent=wishlist.length||'';}
+  function updatePrice(v){maxPrice=Number(v);document.getElementById('priceVal').textContent=v>=3000?'Any':'₹'+v;applyFilters();}
+  function resetFilters(){document.getElementById('fSport').value='';document.getElementById('fSort').value='default';document.getElementById('fRating').value='0';document.getElementById('fPrice').value=3000;maxPrice=3000;document.getElementById('priceVal').textContent='Any';if(document.getElementById('searchInput'))document.getElementById('searchInput').value='';applyFilters();}
+
+  function applyFilters(){
+    let list=[...allTurfs];
+    if(mainTab==='wishlist')list=list.filter(t=>wishlist.includes(t.id));
+    const q=(document.getElementById('searchInput')?.value||'').trim().toLowerCase();
+    if(q)list=list.filter(t=>t.name.toLowerCase().includes(q)||t.location.toLowerCase().includes(q));
+    const sport=document.getElementById('fSort')?document.getElementById('fSport').value:'';
+    if(sport)list=list.filter(t=>t.sport===sport);
+    if(maxPrice<3000)list=list.filter(t=>t.price<=maxPrice);
+    const minRat=parseFloat(document.getElementById('fRating')?.value||'0');
+    if(minRat>0)list=list.filter(t=>(t.rating||0)>=minRat);
+    const sort=document.getElementById('fSort')?.value||'default';
+    if(sort==='price_asc')list.sort((a,b)=>a.price-b.price);
+    else if(sort==='price_desc')list.sort((a,b)=>b.price-a.price);
+    else if(sort==='rating')list.sort((a,b)=>(b.rating||0)-(a.rating||0));
+    else if(sort==='reviews')list.sort((a,b)=>(b.rating_count||0)-(a.rating_count||0));
+    else list.sort((a,b)=>(b.is_default||0)-(a.is_default||0));
+    const chips=[];
+    if(sport)chips.push({label:sport,clear:()=>{document.getElementById('fSport').value='';applyFilters();}});
+    if(maxPrice<3000)chips.push({label:'Max ₹'+maxPrice,clear:()=>{document.getElementById('fPrice').value=3000;maxPrice=3000;document.getElementById('priceVal').textContent='Any';applyFilters();}});
+    if(minRat>0)chips.push({label:minRat+'★+',clear:()=>{document.getElementById('fRating').value='0';applyFilters();}});
+    if(q)chips.push({label:'"'+q+'"',clear:()=>{document.getElementById('searchInput').value='';applyFilters();}});
+    document.getElementById('activeFilters').innerHTML=chips.map((c,i)=>`<div class="af-chip" onclick="clearChip(${i})"><i class="fas fa-times" style="font-size:10px;"></i>${c.label}</div>`).join('');
+    window._afChips=chips;
+    const txt=mainTab==='wishlist'?`<i class="fas fa-heart" style="color:#ef4444;"></i> ${list.length} saved turf${list.length!==1?'s':''}`:` <b>${list.length}</b> turf${list.length!==1?'s':''} found`;
+    document.getElementById('resultTxt').innerHTML=txt;
+    document.getElementById('allCnt').textContent=allTurfs.length;
+    updateWishCnt();
+    render(list);
+  }
+
+  function clearChip(i){window._afChips[i].clear();}
+
+  function switchMainTab(tab){mainTab=tab;document.getElementById('tabAll').classList.toggle('active',tab==='all');document.getElementById('tabWish').classList.toggle('active',tab==='wishlist');document.getElementById('filterBar').style.display=tab==='wishlist'?'none':'';applyFilters();}
+
+  function toggleWish(id,e){e.stopPropagation();const idx=wishlist.indexOf(id);if(idx===-1){wishlist.push(id);toast('Added to wishlist ❤️');}else{wishlist.splice(idx,1);toast('Removed from wishlist','info');}localStorage.setItem('ts_wishlist',JSON.stringify(wishlist));applyFilters();}
+
+  function toggleCompare(id,e){e.stopPropagation();const idx=compareList.indexOf(id);if(idx===-1){if(compareList.length>=3){toast('Max 3 turfs to compare','warning');return;}compareList.push(id);}else{compareList.splice(idx,1);}localStorage.setItem('ts_compare',JSON.stringify(compareList));updateCompareStrip();applyFilters();}
+
+  function updateCompareStrip(){const strip=document.getElementById('compareStrip'),btn=document.getElementById('compareBtn'),items=document.getElementById('cmpItems');document.getElementById('compareCnt').textContent=compareList.length;if(!compareList.length){strip.classList.remove('visible');btn.style.display='none';return;}strip.classList.add('visible');btn.style.display='';const names=compareList.map(id=>allTurfs.find(t=>t.id===id)?.name||'#'+id);items.innerHTML=names.map((n,i)=>`<div class="cmp-badge">${n}<button onclick="removeCompare('${compareList[i]}',event)"><i class="fas fa-times"></i></button></div>`).join('');}
+
+  function removeCompare(id,e){e.stopPropagation();compareList=compareList.filter(x=>x!==id);localStorage.setItem('ts_compare',JSON.stringify(compareList));updateCompareStrip();applyFilters();}
+  function clearCompare(){compareList=[];localStorage.removeItem('ts_compare');updateCompareStrip();applyFilters();}
+  function openComparePage(){if(!compareList.length){toast('Select turfs to compare','warning');return;}window.location.href='compare.html';}
+
+  function setView(v){view=v;document.getElementById('viewGrid').classList.toggle('active',v==='grid');document.getElementById('viewList').classList.toggle('active',v==='list');applyFilters();}
+
+  function render(list){
+    const g=document.getElementById('grid');
+    if(!list.length){g.className='';g.innerHTML=mainTab==='wishlist'?'<div class="empty"><i class="fas fa-heart-broken"></i><h3>No saved turfs</h3><p>Browse turfs and tap the ♥ to save</p><button class="btn btn-green" onclick="switchMainTab(\'all\')">Browse Turfs</button></div>':'<div class="empty"><i class="fas fa-search"></i><h3>No turfs found</h3><p>Try different filters</p><button class="btn btn-ghost btn-sm" onclick="resetFilters()">Clear Filters</button></div>';return;}
+    if(view==='list'){g.className='turf-list';g.innerHTML=list.map(t=>renderListItem(t)).join('');}
+    else{g.className='grid-turfs';g.innerHTML=list.map(t=>renderCard(t)).join('');}
+  }
+
+  function renderCard(t){
+    const img=parseFirstImage(t.image);
+    const isWish=wishlist.includes(t.id),isCmp=compareList.includes(t.id);
+    return `<div class="turf-card" onclick="goDetails('${t.id}')">
+      <div class="tc-img-wrap">
+        <img class="tc-img" src="${img}" alt="${t.name}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1556056504-5c7696c4c28d?w=800'">
+        <div class="tc-badge"><i class="fas ${sportIcon(t.sport)}"></i> ${t.sport}</div>
+        <button class="wish-btn${isWish?' active':''}" style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.55);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;" onclick="toggleWish('${t.id}',event)"><i class="fa${isWish?'s':'r'} fa-heart" style="font-size:14px;"></i></button>
+      </div>
+      <div class="tc-body">
+        <div class="tc-name">${t.name}</div>
+        <div class="tc-meta"><span><i class="fas fa-map-marker-alt"></i> ${t.location}</span><span><i class="fas fa-star" style="color:#facc15;"></i> ${(t.rating||0).toFixed(1)} (${t.rating_count||0})</span></div>
+        <div class="tc-price">₹${t.price} <small>/ hr</small></div>
+        <div class="tc-actions" onclick="event.stopPropagation()">
+          <button class="btn btn-ghost btn-sm" onclick="goDetails('${t.id}')"><i class="fas fa-info-circle"></i> Details</button>
+          <button class="btn btn-green btn-sm" onclick="goBook('${t.id}','${t.name.replace(/'/g,"\\'")}')"><i class="fas fa-calendar-check"></i> Book</button>
+          <button class="btn btn-sm${isCmp?' btn-info':' btn-ghost'}" onclick="toggleCompare('${t.id}',event)" style="padding:6px 10px;"><i class="fas fa-balance-scale"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderListItem(t){
+    const img=parseFirstImage(t.image);
+    const isWish=wishlist.includes(t.id),isCmp=compareList.includes(t.id);
+    let ams=[];try{ams=JSON.parse(t.amenities||'[]');}catch(e){}
+    return `<div class="turf-list-item" onclick="goDetails('${t.id}')">
+      <img class="tli-img" src="${img}" alt="${t.name}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1556056504-5c7696c4c28d?w=800'">
+      <div class="tli-body">
+        <div class="tli-name">${t.name}</div>
+        <div class="tli-meta"><span><i class="fas fa-map-marker-alt"></i> ${t.location}</span><span><i class="fas ${sportIcon(t.sport)}"></i> ${t.sport}</span><span><i class="fas fa-star" style="color:#facc15;"></i> ${(t.rating||0).toFixed(1)} (${t.rating_count||0})</span></div>
+        ${ams.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">${ams.slice(0,3).map(a=>`<span style="font-size:11px;background:var(--navy);border:1px solid var(--border);border-radius:50px;padding:2px 9px;color:var(--muted);">${a}</span>`).join('')}${ams.length>3?`<span style="font-size:11px;color:var(--muted);">+${ams.length-3} more</span>`:''}</div>`:''}
+        <div class="tli-price">₹${t.price} <small style="font-size:12px;font-weight:400;color:var(--muted);">/ hr</small></div>
+      </div>
+      <div class="tli-actions" onclick="event.stopPropagation()">
+        <button class="wish-btn${isWish?' active':''}" onclick="toggleWish('${t.id}',event)"><i class="fa${isWish?'s':'r'} fa-heart"></i></button>
+        <button class="btn btn-green btn-sm" onclick="goBook('${t.id}','${t.name.replace(/'/g,"\\'")}')"><i class="fas fa-calendar-check"></i> Book</button>
+        <button class="btn btn-sm${isCmp?' btn-info':' btn-ghost'}" onclick="toggleCompare('${t.id}',event)" style="padding:6px 10px;"><i class="fas fa-balance-scale"></i></button>
+      </div>
+    </div>`;
+  }
+
+  function goDetails(id){localStorage.setItem('ts_turfId',id);window.location.href='details.html';}
+  function goBook(id,name){localStorage.setItem('ts_turfId',id);localStorage.setItem('ts_turfName',name);window.location.href='booking.html';}
+  window.doSearch=applyFilters;
+  updateCompareStrip();
+  loadTurfs();
+</script>
+</body>
+</html>

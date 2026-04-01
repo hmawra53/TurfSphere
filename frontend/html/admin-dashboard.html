@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin Dashboard – TurfSphere</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* ── Turf Preview Modal ───────────────────────────────────────── */
+    .preview-modal-bg {
+      position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;
+      display:none;align-items:center;justify-content:center;padding:16px;
+    }
+    .preview-modal-bg.open { display:flex; }
+    .preview-modal {
+      background:var(--card);border-radius:var(--r);max-width:640px;width:100%;
+      max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.5);
+    }
+    .preview-hero {
+      width:100%;height:220px;object-fit:cover;border-radius:var(--r) var(--r) 0 0;
+      display:block;background:#1a1a2e;
+    }
+    .preview-body { padding:22px 24px; }
+    .preview-title {
+      font-size:22px;font-weight:800;color:var(--text);margin-bottom:8px;
+    }
+    .preview-meta {
+      display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;font-size:13px;color:var(--muted);
+    }
+    .preview-meta span { display:flex;align-items:center;gap:5px; }
+    .preview-desc { font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:16px; }
+    .preview-amenities { display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px; }
+    .preview-owner-box {
+      background:var(--bg);border-radius:var(--r-sm);padding:12px 16px;
+      margin-bottom:22px;font-size:13px;color:var(--muted);
+      border:1px solid var(--border);
+    }
+    .preview-actions {
+      display:flex;gap:12px;padding-top:16px;border-top:1px solid var(--border);
+    }
+    .preview-close {
+      position:sticky;top:12px;float:right;margin:12px 12px 0 0;
+      background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;
+      width:34px;height:34px;cursor:pointer;font-size:15px;z-index:2;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .preview-close:hover { background:var(--danger); }
+    .reject-reason-box { margin-top:14px;display:none; }
+    .reject-reason-box.open { display:block; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="page-hdr">
+    <div><h2>⚙️ Admin Dashboard</h2><p>Manage platform — turfs, users, coupons</p></div>
+    <button class="btn btn-danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats" id="statsRow">
+    <div class="stat"><div class="stat-ic si-blue"><i class="fas fa-users"></i></div><div><div class="stat-val" id="sUsers">0</div><div class="stat-lbl">Players</div></div></div>
+    <div class="stat"><div class="stat-ic si-orange"><i class="fas fa-user-tie"></i></div><div><div class="stat-val" id="sOwners">0</div><div class="stat-lbl">Owners</div></div></div>
+    <div class="stat"><div class="stat-ic si-green"><i class="fas fa-check-circle"></i></div><div><div class="stat-val" id="sApproved">0</div><div class="stat-lbl">Approved Turfs</div></div></div>
+    <div class="stat"><div class="stat-ic si-warn"><i class="fas fa-clock"></i></div><div><div class="stat-val" id="sPending">0</div><div class="stat-lbl">Pending Review</div></div></div>
+    <div class="stat"><div class="stat-ic si-blue"><i class="fas fa-calendar-check"></i></div><div><div class="stat-val" id="sBookings">0</div><div class="stat-lbl">Bookings</div></div></div>
+    <div class="stat"><div class="stat-ic si-green"><i class="fas fa-rupee-sign"></i></div><div><div class="stat-val" id="sRevenue">₹0</div><div class="stat-lbl">Revenue</div></div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="sw('turfs',this)"><i class="fas fa-futbol"></i> Turf Approvals</button>
+    <button class="tab"        onclick="sw('users',this)"><i class="fas fa-users"></i> Users</button>
+    <button class="tab"        onclick="sw('bookings',this)"><i class="fas fa-calendar"></i> Bookings</button>
+    <button class="tab"        onclick="sw('coupons',this)"><i class="fas fa-tag"></i> Coupons</button>
+  </div>
+
+  <!-- Turf Approvals -->
+  <div id="tab-turfs">
+    <div style="display:flex;gap:9px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="chip active" onclick="filterTurfStatus('all',this)">All</button>
+      <button class="chip" onclick="filterTurfStatus('pending',this)">⏳ Pending</button>
+      <button class="chip" onclick="filterTurfStatus('approved',this)">✓ Approved</button>
+      <button class="chip" onclick="filterTurfStatus('rejected',this)">✗ Rejected</button>
+    </div>
+    <div id="turfList"></div>
+  </div>
+
+  <!-- Users -->
+  <div id="tab-users" style="display:none;">
+    <div class="card">
+      <div class="section-title"><i class="fas fa-users" style="color:var(--green)"></i> All Users</div>
+      <div class="tbl-wrap">
+        <table id="usersTable">
+          <thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+          <tbody id="usersTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bookings -->
+  <div id="tab-bookings" style="display:none;">
+    <div class="card">
+      <div class="section-title"><i class="fas fa-calendar" style="color:var(--green)"></i> All Bookings</div>
+      <div id="adminBookings"></div>
+    </div>
+  </div>
+
+  <!-- Coupons -->
+  <div id="tab-coupons" style="display:none;">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="section-title"><i class="fas fa-plus" style="color:var(--green)"></i> Create Coupon</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;align-items:end;">
+        <div class="form-group" style="margin:0;"><label class="form-label">Code</label><input type="text" id="cCode" class="form-input" placeholder="SUMMER20" style="text-transform:uppercase"></div>
+        <div class="form-group" style="margin:0;"><label class="form-label">Discount %</label><input type="number" id="cPct" class="form-input" placeholder="20" min="1" max="100"></div>
+        <div class="form-group" style="margin:0;"><label class="form-label">Min Booking ₹</label><input type="number" id="cMin" class="form-input" placeholder="0"></div>
+        <div class="form-group" style="margin:0;"><label class="form-label">Uses</label><input type="number" id="cUses" class="form-input" placeholder="100"></div>
+        <div class="form-group" style="margin:0;"><label class="form-label">Expires</label><input type="date" id="cExp" class="form-input"></div>
+        <button class="btn btn-green" onclick="createCoupon()" style="border-radius:var(--r-sm);height:44px;"><i class="fas fa-plus"></i> Add</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title"><i class="fas fa-tag" style="color:var(--green)"></i> Active Coupons</div>
+      <div id="couponList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Turf Preview Modal ──────────────────────────────────────────── -->
+<div class="preview-modal-bg" id="previewModal">
+  <div class="preview-modal">
+    <button class="preview-close" onclick="closePreview()"><i class="fas fa-times"></i></button>
+    <img id="pvImg" class="preview-hero" src="" alt="Turf Image">
+    <div class="preview-body">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+        <span class="preview-title" id="pvName"></span>
+        <span id="pvBadge"></span>
+        <span id="pvDefault"></span>
+      </div>
+      <div class="preview-meta">
+        <span><i class="fas fa-map-marker-alt" style="color:var(--green)"></i> <span id="pvLocation"></span></span>
+        <span><i class="fas fa-futbol" style="color:var(--green)"></i> <span id="pvSport"></span></span>
+        <span><i class="fas fa-rupee-sign" style="color:var(--green)"></i> <span id="pvPrice"></span>/hr</span>
+        <span><i class="fas fa-star" style="color:#f59e0b"></i> <span id="pvRating"></span></span>
+      </div>
+      <p class="preview-desc" id="pvDesc"></p>
+      <div class="preview-amenities" id="pvAmenities"></div>
+      <div class="preview-owner-box">
+        <i class="fas fa-user-tie" style="color:var(--green)"></i>
+        <strong>Owner:</strong> <span id="pvOwner"></span> &nbsp;|&nbsp;
+        <strong>Submitted:</strong> <span id="pvDate"></span>
+      </div>
+      <div id="pvRejectBox" class="reject-reason-box">
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label">Reason for Rejection</label>
+          <textarea id="pvRejectReason" class="form-textarea" placeholder="Explain why this turf is being rejected…" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="preview-actions" id="pvActions"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  guard('admin');
+  buildNav();
+
+  let turfs=[], users=[], bookings=[], coupons=[];
+  let turfFilter = 'all';
+  let previewTurf = null;
+  let rejectMode = false;
+  // parseFirstImage, parseImages, FALLBACK_IMG are now defined in app.js
+
+  async function loadAll() {
+    try {
+      const [stats, t, u, b, c] = await Promise.all([
+        api.get('/api/admin/stats'),
+        api.get('/api/turfs/admin/all'),
+        api.get('/api/admin/users'),
+        api.get('/api/bookings/admin/all'),
+        api.get('/api/admin/coupons')
+      ]);
+      document.getElementById('sUsers').textContent    = stats.users;
+      document.getElementById('sOwners').textContent   = stats.owners;
+      document.getElementById('sApproved').textContent = stats.approved;
+      document.getElementById('sPending').textContent  = stats.pending;
+      document.getElementById('sBookings').textContent = stats.bookings;
+      document.getElementById('sRevenue').textContent  = '₹' + Math.round(stats.revenue||0).toLocaleString('en-IN');
+      turfs=t; users=u; bookings=b; coupons=c;
+      renderTurfs(); renderUsers(); renderBookings(); renderCoupons();
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  function renderTurfs() {
+    const list = turfFilter==='all' ? turfs : turfs.filter(t=>t.status===turfFilter);
+    const el = document.getElementById('turfList');
+    if (!list.length) { el.innerHTML=`<div class="empty"><i class="fas fa-futbol"></i><h3>No turfs in this filter</h3></div>`; return; }
+    el.innerHTML = list.map(t => {
+      const img = parseFirstImage(t.image);
+      const si  = sportIcon(t.sport);
+      const badge = `<span class="badge badge-${t.status==='approved'?'green':t.status==='rejected'?'red':'warn'}">${t.status.toUpperCase()}</span>`;
+      let am = []; try { am = JSON.parse(t.amenities||'[]'); } catch(e) {}
+      const tid = t._id || t.id;
+      return `
+      <div class="bk-card" style="align-items:flex-start;padding:16px 18px;cursor:pointer;" onclick="openPreview('${tid}')">
+        <img src="${img}" style="width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
+            <span style="font-weight:700;color:var(--text);font-size:15px;">${t.name}</span>
+            ${badge}
+            ${t.is_default ? '<span class="badge badge-blue">DEFAULT</span>' : ''}
+          </div>
+          <div style="font-size:12.5px;color:var(--muted);margin-bottom:3px;">
+            <i class="fas fa-map-marker-alt" style="color:var(--green);"></i> ${t.location} &nbsp;
+            <i class="fas ${si}" style="color:var(--green);"></i> ${t.sport} &nbsp;
+            <i class="fas fa-rupee-sign" style="color:var(--green);"></i> ₹${t.price}/hr &nbsp;
+            <i class="fas fa-user-tie" style="color:var(--green);"></i> ${t.owner_name||'System'}
+          </div>
+          <p style="font-size:12px;color:var(--muted);">${(t.description||'').slice(0,100)}…</p>
+          ${t.status==='rejected'&&t.reject_reason?`<p style="font-size:12px;color:var(--danger);margin-top:3px;"><i class="fas fa-exclamation-circle"></i> ${t.reject_reason}</p>`:''}
+          ${am.length ? `<div style="margin-top:5px;">${am.map(a=>`<span class="amenity" style="font-size:11px;padding:3px 9px;">${a}</span>`).join('')}</div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;flex-shrink:0;" onclick="event.stopPropagation()">
+          <button class="btn btn-info btn-sm" onclick="openPreview('${tid}')"><i class="fas fa-eye"></i> Review</button>
+          ${!t.is_default ? `<button class="btn btn-ghost btn-sm" onclick="adminDelTurf('${tid}','${t.name.replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i></button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Preview Modal ──────────────────────────────────────────────
+  function openPreview(id) {
+    const t = turfs.find(x => String(x._id||x.id) === String(id));
+    if (!t) return;
+    previewTurf = t;
+    rejectMode = false;
+
+    const tid = t._id || t.id;
+    const img = parseFirstImage(t.image);
+    let am = []; try { am = JSON.parse(t.amenities||'[]'); } catch(e) {}
+
+    document.getElementById('pvImg').src = img;
+    document.getElementById('pvName').textContent = t.name;
+    document.getElementById('pvLocation').textContent = t.location;
+    document.getElementById('pvSport').textContent = t.sport;
+    document.getElementById('pvPrice').textContent = '₹' + t.price;
+    document.getElementById('pvRating').textContent = (t.rating||4.0).toFixed(1) + ' (' + (t.rating_count||0) + ' reviews)';
+    document.getElementById('pvDesc').textContent = t.description || 'No description provided.';
+    document.getElementById('pvOwner').textContent = t.owner_name || 'System';
+    document.getElementById('pvDate').textContent = fmtDate(t.created_at);
+
+    const badge = document.getElementById('pvBadge');
+    badge.className = `badge badge-${t.status==='approved'?'green':t.status==='rejected'?'red':'warn'}`;
+    badge.textContent = t.status.toUpperCase();
+
+    const defBadge = document.getElementById('pvDefault');
+    defBadge.innerHTML = t.is_default ? '<span class="badge badge-blue">DEFAULT</span>' : '';
+
+    document.getElementById('pvAmenities').innerHTML = am.length
+      ? am.map(a=>`<span class="amenity">${a}</span>`).join('')
+      : '<span style="color:var(--muted);font-size:13px;">No amenities listed</span>';
+
+    // Rejected reason
+    if (t.status === 'rejected' && t.reject_reason) {
+      document.getElementById('pvDesc').innerHTML += `<br><span style="color:var(--danger);font-size:12px;"><i class="fas fa-exclamation-circle"></i> Rejected: ${t.reject_reason}</span>`;
+    }
+
+    // Reset reject box
+    document.getElementById('pvRejectBox').classList.remove('open');
+    document.getElementById('pvRejectReason').value = '';
+
+    // Build action buttons
+    renderPreviewActions(t, tid);
+
+    document.getElementById('previewModal').classList.add('open');
+  }
+
+  function renderPreviewActions(t, tid) {
+    const el = document.getElementById('pvActions');
+    let html = `<button class="btn btn-ghost" onclick="closePreview()" style="flex:1"><i class="fas fa-times"></i> Close</button>`;
+
+    if (t.status !== 'approved') {
+      html += `<button class="btn btn-green" onclick="confirmApprove('${tid}')" style="flex:2">
+        <i class="fas fa-check-circle"></i> Approve Turf
+      </button>`;
+    }
+    if (t.status !== 'rejected') {
+      html += `<button class="btn btn-danger" onclick="toggleRejectBox('${tid}')" id="pvRejectBtn" style="flex:2">
+        <i class="fas fa-times-circle"></i> Reject Turf
+      </button>`;
+    }
+    if (t.status === 'approved') {
+      html += `<button class="btn btn-danger" onclick="toggleRejectBox('${tid}')" id="pvRejectBtn" style="flex:2">
+        <i class="fas fa-ban"></i> Revoke Approval
+      </button>`;
+    }
+
+    el.innerHTML = html;
+  }
+
+  function toggleRejectBox(tid) {
+    const box = document.getElementById('pvRejectBox');
+    const btn = document.getElementById('pvRejectBtn');
+    rejectMode = !rejectMode;
+    box.classList.toggle('open', rejectMode);
+    if (rejectMode) {
+      btn.innerHTML = `<i class="fas fa-paper-plane"></i> Submit Rejection`;
+      btn.onclick = () => confirmReject(tid);
+      document.getElementById('pvRejectReason').focus();
+    } else {
+      btn.innerHTML = `<i class="fas fa-times-circle"></i> Reject Turf`;
+      btn.onclick = () => toggleRejectBox(tid);
+    }
+  }
+
+  async function confirmApprove(id) {
+    try {
+      await api.post(`/api/turfs/${id}/approve`, {});
+      toast('Turf approved! ✓', 'success');
+      closePreview();
+      loadAll();
+    } catch(e) { toast(e.message, 'error'); }
+  }
+
+  async function confirmReject(id) {
+    const reason = document.getElementById('pvRejectReason').value.trim();
+    if (!reason) { toast('Please provide a rejection reason', 'warning'); return; }
+    try {
+      await api.post(`/api/turfs/${id}/reject`, { reason });
+      toast('Turf rejected', 'info');
+      closePreview();
+      loadAll();
+    } catch(e) { toast(e.message, 'error'); }
+  }
+
+  function closePreview() {
+    document.getElementById('previewModal').classList.remove('open');
+    previewTurf = null;
+    rejectMode = false;
+  }
+
+  // ── Users ──────────────────────────────────────────────────────
+  function renderUsers() {
+    const tb = document.getElementById('usersTbody');
+    tb.innerHTML = users.map((u,i) => {
+      const uid = u._id || u.id;
+      return `
+      <tr>
+        <td>${i+1}</td>
+        <td style="font-weight:600;">${u.name}</td>
+        <td>${u.phone}</td>
+        <td><span class="badge badge-${u.role==='admin'?'blue':u.role==='owner'?'orange':'green'}">${u.role.toUpperCase()}</span></td>
+        <td><span class="badge badge-${u.status==='active'?'green':'red'}">${u.status||'active'}</span></td>
+        <td style="font-size:12px;color:var(--muted);">${fmtDate(u.created_at)}</td>
+        <td>
+          ${u.role!=='admin' ? (u.status==='suspended'
+            ? `<button class="btn btn-green btn-sm" onclick="activateUser('${uid}')"><i class="fas fa-unlock"></i> Activate</button>`
+            : `<button class="btn btn-danger btn-sm" onclick="suspendUser('${uid}')"><i class="fas fa-ban"></i> Suspend</button>`) : '<span style="color:var(--muted);font-size:12px;">—</span>'}
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderBookings() {
+    const el = document.getElementById('adminBookings');
+    if (!bookings.length) { el.innerHTML=`<div class="empty"><i class="fas fa-calendar-times"></i><h3>No bookings yet</h3></div>`; return; }
+    el.innerHTML = bookings.map(b=>`
+      <div class="bk-card">
+        <div class="bk-main">
+          <div class="bk-title">${b.turf_name} <span style="font-size:12px;color:var(--muted);">· ${b.user_name||b.contact_name}</span></div>
+          <div class="bk-detail">
+            <i class="fas fa-map-marker-alt" style="color:var(--muted);width:12px;"></i> ${b.location} &nbsp;
+            <i class="fas fa-calendar" style="color:var(--muted);width:12px;"></i> ${fmtDate(b.date)} &nbsp;
+            <i class="fas fa-clock" style="color:var(--muted);width:12px;"></i> ${fmtTime(b.start_time)}–${fmtTime(b.end_time)}
+          </div>
+          <div class="bk-detail">
+            <i class="fas fa-users" style="color:var(--muted);width:12px;"></i> ${b.players} players &nbsp;
+            <i class="fas fa-rupee-sign" style="color:var(--muted);width:12px;"></i> ₹${b.total_price}
+          </div>
+        </div>
+        <span class="bk-status ${b.status}">${b.status.charAt(0).toUpperCase()+b.status.slice(1)}</span>
+      </div>`).join('');
+  }
+
+  function renderCoupons() {
+    const el = document.getElementById('couponList');
+    if (!coupons.length) { el.innerHTML=`<p style="color:var(--muted);text-align:center;padding:20px;">No coupons yet.</p>`; return; }
+    el.innerHTML = coupons.map(c=>{
+      const cid = c._id || c.id;
+      return `
+      <div class="bk-card">
+        <div class="bk-main">
+          <div class="bk-title" style="font-family:monospace;font-size:15px;letter-spacing:1px;">${c.code}</div>
+          <div class="bk-detail">
+            <span class="badge badge-green">${c.discount_pct}% OFF</span> &nbsp;
+            Min ₹${c.min_booking} &nbsp; · &nbsp; ${c.uses_left} uses left
+            ${c.expires_at?` · Expires ${fmtDate(c.expires_at)}`:''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge badge-${c.is_active?'green':'muted'}">${c.is_active?'Active':'Inactive'}</span>
+          <button class="btn btn-danger btn-sm" onclick="deleteCoupon('${cid}')"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Actions ────────────────────────────────────────────────────
+  async function adminDelTurf(id, name) {
+    if (!confirm(`Permanently delete "${name}"?`)) return;
+    try { await api.delete('/api/turfs/'+id); toast('Turf deleted'); loadAll(); }
+    catch(e) { toast(e.message,'error'); }
+  }
+  async function suspendUser(id) {
+    if (!confirm('Suspend this user?')) return;
+    try { await api.post(`/api/admin/users/${id}/suspend`,{}); toast('User suspended','warning'); loadAll(); }
+    catch(e) { toast(e.message,'error'); }
+  }
+  async function activateUser(id) {
+    try { await api.post(`/api/admin/users/${id}/activate`,{}); toast('User activated'); loadAll(); }
+    catch(e) { toast(e.message,'error'); }
+  }
+  async function createCoupon() {
+    const code = document.getElementById('cCode').value.trim().toUpperCase();
+    const pct  = document.getElementById('cPct').value;
+    const min  = document.getElementById('cMin').value || 0;
+    const uses = document.getElementById('cUses').value || 100;
+    const exp  = document.getElementById('cExp').value || null;
+    if (!code||!pct) { toast('Code and discount % required','error'); return; }
+    try {
+      await api.post('/api/admin/coupons',{ code, discount_pct:parseInt(pct), min_booking:parseFloat(min), uses_left:parseInt(uses), expires_at:exp });
+      toast('Coupon created!');
+      ['cCode','cPct','cMin','cUses','cExp'].forEach(id=>document.getElementById(id).value='');
+      loadAll();
+    } catch(e) { toast(e.message,'error'); }
+  }
+  async function deleteCoupon(id) {
+    if (!confirm('Delete this coupon?')) return;
+    try { await api.delete('/api/admin/coupons/'+id); toast('Coupon deleted','info'); loadAll(); }
+    catch(e) { toast(e.message,'error'); }
+  }
+
+  function filterTurfStatus(s, el) {
+    turfFilter = s;
+    document.querySelectorAll('#tab-turfs .chip').forEach(c=>c.classList.toggle('active',c===el));
+    renderTurfs();
+  }
+
+  function sw(name, el) {
+    ['turfs','users','bookings','coupons'].forEach(t=>{ document.getElementById('tab-'+t).style.display=t===name?'block':'none'; });
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t===el));
+  }
+
+  // Close modal on background click
+  document.getElementById('previewModal').addEventListener('click', function(e) {
+    if (e.target === this) closePreview();
+  });
+
+  loadAll();
+  setInterval(loadAll, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>My Dashboard – TurfSphere</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .profile-banner{background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(34,197,94,.03));border:1px solid rgba(34,197,94,.2);border-radius:16px;padding:24px 26px;margin-bottom:24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+    .profile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--green),#84cc16);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0;}
+    .profile-info{flex:1;}
+    .profile-name{font-size:1.3rem;font-weight:800;color:var(--text);}
+    .profile-meta{font-size:13px;color:var(--muted);margin-top:2px;}
+    .loyalty-badge{display:flex;align-items:center;gap:8px;background:rgba(250,204,21,.1);border:1px solid rgba(250,204,21,.3);border-radius:50px;padding:8px 16px;}
+    .loyalty-pts{font-size:1.2rem;font-weight:800;color:#facc15;}
+    .loyalty-lbl{font-size:12px;color:var(--muted);}
+    .quick-actions{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:24px;}
+    .qa-btn{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:.22s;text-decoration:none;}
+    .qa-btn:hover{border-color:var(--green);transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.3);}
+    .qa-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+    .qa-label{font-size:12.5px;font-weight:600;color:var(--text);text-align:center;}
+    .badge-grid{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px;}
+    .achievement-badge{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:10px;flex:1;min-width:150px;}
+    .ab-icon{font-size:24px;}
+    .ab-name{font-size:13px;font-weight:700;color:var(--text);}
+    .ab-desc{font-size:11.5px;color:var(--muted);}
+    .ab-locked{opacity:.4;filter:grayscale(1);}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Success banner -->
+  <div id="successBanner" style="display:none;background:rgba(34,197,94,.12);border:1px solid var(--green);border-radius:var(--r);padding:16px 22px;margin-bottom:24px;align-items:center;gap:14px;">
+    <i class="fas fa-check-circle" style="font-size:26px;color:var(--green);flex-shrink:0;"></i>
+    <div><div style="font-weight:700;color:var(--green);">Booking Confirmed!</div><div style="font-size:13px;color:var(--muted);">Your turf has been booked successfully.</div></div>
+  </div>
+
+  <!-- Profile Banner -->
+  <div class="profile-banner">
+    <div class="profile-avatar" id="profileInitials">U</div>
+    <div class="profile-info">
+      <div class="profile-name" id="profileName">My Dashboard</div>
+      <div class="profile-meta" id="profileMeta">Player · Member since 2025</div>
+    </div>
+    <div class="loyalty-badge">
+      <i class="fas fa-star" style="color:#facc15;font-size:18px;"></i>
+      <div>
+        <div class="loyalty-pts" id="loyaltyPts">0</div>
+        <div class="loyalty-lbl">Loyalty Points</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats" id="statsGrid">
+    <div class="stat"><div class="stat-ic si-green"><i class="fas fa-calendar-check"></i></div><div><div class="stat-val" id="sTotal">0</div><div class="stat-lbl">Total Bookings</div></div></div>
+    <div class="stat"><div class="stat-ic si-blue"><i class="fas fa-check-circle"></i></div><div><div class="stat-val" id="sConf">0</div><div class="stat-lbl">Confirmed</div></div></div>
+    <div class="stat"><div class="stat-ic si-warn"><i class="fas fa-clock"></i></div><div><div class="stat-val" id="sPend">0</div><div class="stat-lbl">Pending</div></div></div>
+    <div class="stat"><div class="stat-ic si-orange"><i class="fas fa-rupee-sign"></i></div><div><div class="stat-val" id="sSpend">₹0</div><div class="stat-lbl">Total Spent</div></div></div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    <a href="home.html" class="qa-btn">
+      <div class="qa-icon" style="background:var(--green-glow);color:var(--green);"><i class="fas fa-search"></i></div>
+      <div class="qa-label">Browse Turfs</div>
+    </a>
+    <a href="find-players.html" class="qa-btn">
+      <div class="qa-icon" style="background:rgba(59,130,246,.15);color:var(--info);"><i class="fas fa-users"></i></div>
+      <div class="qa-label">Find Players</div>
+    </a>
+    <a href="tournaments.html" class="qa-btn">
+      <div class="qa-icon" style="background:rgba(249,115,22,.15);color:var(--orange);"><i class="fas fa-trophy"></i></div>
+      <div class="qa-label">Tournaments</div>
+    </a>
+    <a href="home.html?tab=wishlist" class="qa-btn" onclick="localStorage.setItem('ts_wishlistTab','1');window.location.href='home.html';return false;">
+      <div class="qa-icon" style="background:rgba(239,68,68,.12);color:#ef4444;"><i class="fas fa-heart"></i></div>
+      <div class="qa-label">My Wishlist</div>
+    </a>
+  </div>
+
+  <!-- Achievements -->
+  <div class="card" style="margin-bottom:22px;">
+    <div class="section-title"><i class="fas fa-medal" style="color:#facc15;"></i> Achievements</div>
+    <div class="badge-grid" id="badgeGrid">
+      <div class="achievement-badge"><div class="ab-icon">🏆</div><div><div class="ab-name">First Booking</div><div class="ab-desc">Complete your first booking</div></div></div>
+      <div class="achievement-badge ab-locked" id="badge5"><div class="ab-icon">🔥</div><div><div class="ab-name">Regular Player</div><div class="ab-desc">5+ bookings made</div></div></div>
+      <div class="achievement-badge ab-locked" id="badge10"><div class="ab-icon">⭐</div><div><div class="ab-name">Sports Enthusiast</div><div class="ab-desc">10+ bookings made</div></div></div>
+      <div class="achievement-badge ab-locked" id="badgeReview"><div class="ab-icon">✍️</div><div><div class="ab-name">Reviewer</div><div class="ab-desc">Leave your first review</div></div></div>
+    </div>
+  </div>
+
+  <!-- Bookings -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div class="section-title" style="margin-bottom:0;"><i class="fas fa-history" style="color:var(--green);"></i> Booking History</div>
+      <div style="display:flex;gap:8px;">
+        <select id="statusFilter" class="form-select" style="font-size:13px;padding:6px 10px;width:auto;" onchange="filterBookings()">
+          <option value="">All Status</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="pending">Pending</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+    </div>
+    <div id="bookList"><div style="display:flex;justify-content:center;padding:30px;"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal-bg" id="editModal">
+  <div class="modal" style="max-width:420px;">
+    <button class="modal-close" onclick="document.getElementById('editModal').classList.remove('open')"><i class="fas fa-times"></i></button>
+    <h3 style="margin-bottom:20px;"><i class="fas fa-user-edit" style="color:var(--green);margin-right:8px;"></i>Edit Profile</h3>
+    <div class="form-group"><label class="form-label">Full Name</label><div class="input-icon"><i class="fas fa-user"></i><input type="text" id="editName" class="form-input"></div></div>
+    <div class="form-group"><label class="form-label">Email</label><div class="input-icon"><i class="fas fa-envelope"></i><input type="email" id="editEmail" class="form-input" placeholder="your@email.com"></div></div>
+    <button class="btn btn-green btn-full" onclick="saveProfile()"><i class="fas fa-save"></i> Save Changes</button>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  guard();
+  buildNav();
+
+  const user = Auth.getUser();
+  let allBookings = [];
+
+  // Profile banner
+  if (user) {
+    const initials = user.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    document.getElementById('profileInitials').textContent = initials;
+    document.getElementById('profileName').textContent = user.name;
+    document.getElementById('profileMeta').textContent = `${user.role.charAt(0).toUpperCase()+user.role.slice(1)} · TurfSphere Member`;
+  }
+
+  // Success banner
+  if (localStorage.getItem('ts_justBooked') === 'true') {
+    const b = document.getElementById('successBanner');
+    b.style.display = 'flex';
+    localStorage.removeItem('ts_justBooked');
+    setTimeout(() => { b.style.opacity='0'; b.style.transition='opacity .5s'; setTimeout(()=>b.style.display='none',500); }, 4500);
+  }
+
+  async function load() {
+    try {
+      allBookings = await api.get('/api/bookings/mine');
+
+      const confirmed = allBookings.filter(b=>b.status==='confirmed');
+      const totalSpent = confirmed.reduce((s,b) => s + (b.total_price||0), 0);
+      const pts = Math.floor(totalSpent / 100); // 1 point per ₹100
+
+      document.getElementById('sTotal').textContent = allBookings.length;
+      document.getElementById('sConf').textContent  = confirmed.length;
+      document.getElementById('sPend').textContent  = allBookings.filter(b=>b.status==='pending').length;
+      document.getElementById('sSpend').textContent = '₹' + totalSpent.toLocaleString();
+      document.getElementById('loyaltyPts').textContent = pts;
+
+      // Achievements
+      if (allBookings.length >= 1) document.getElementById('badgeGrid').children[0].classList.remove('ab-locked');
+      if (allBookings.length >= 5) document.getElementById('badge5').classList.remove('ab-locked');
+      if (allBookings.length >= 10) document.getElementById('badge10').classList.remove('ab-locked');
+
+      filterBookings();
+    } catch(e) {
+      document.getElementById('bookList').innerHTML = `<p style="color:var(--danger);text-align:center;padding:20px;">Error loading bookings. Make sure the server is running.</p>`;
+    }
+  }
+
+  function filterBookings() {
+    const statusF = document.getElementById('statusFilter').value;
+    const list = statusF ? allBookings.filter(b=>b.status===statusF) : allBookings;
+    renderBookings(list);
+  }
+
+  function renderBookings(bookings) {
+    const el = document.getElementById('bookList');
+    if (!bookings.length) {
+      el.innerHTML = `<div class="empty"><i class="fas fa-calendar"></i><h3>${allBookings.length ? 'No bookings match filter' : 'No bookings yet'}</h3><p>${allBookings.length ? 'Try a different filter' : 'Find and book a turf to get started'}</p><button class="btn btn-green" style="margin-top:16px;" onclick="window.location.href='home.html'"><i class="fas fa-search"></i> Browse Turfs</button></div>`;
+      return;
+    }
+    el.innerHTML = bookings.map(b => `
+      <div class="bk-card">
+        <div style="width:50px;height:50px;border-radius:10px;overflow:hidden;flex-shrink:0;">
+          <img src="${parseFirstImage(b.image)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='${FALLBACK_IMG}'">
+        </div>
+        <div class="bk-main">
+          <div class="bk-title"><i class="fas fa-futbol" style="color:var(--green);margin-right:5px;font-size:12px;"></i>${b.turf_name}</div>
+          <div class="bk-detail">
+            <i class="fas fa-map-marker-alt" style="color:var(--muted);width:12px;"></i> ${b.location} &nbsp;
+            <i class="fas fa-calendar" style="color:var(--muted);width:12px;"></i> ${fmtDate(b.date)} &nbsp;
+            <i class="fas fa-clock" style="color:var(--muted);width:12px;"></i> ${fmtTime(b.start_time)} – ${fmtTime(b.end_time)}
+          </div>
+          <div class="bk-detail">
+            <i class="fas fa-users" style="color:var(--muted);width:12px;"></i> ${b.players} players &nbsp;
+            <i class="fas fa-rupee-sign" style="color:var(--muted);width:12px;"></i> ₹${b.total_price}
+            ${b.discount>0?`<span style="color:var(--green);font-size:11.5px;"> (saved ₹${b.discount})</span>`:''}
+            &nbsp; · Booking #${b.id}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+          <span class="bk-status ${b.status}">${b.status.charAt(0).toUpperCase()+b.status.slice(1)}</span>
+          ${b.status !== 'cancelled' ? `<button class="btn btn-danger btn-sm" onclick="cancel('${b.id}')"><i class="fas fa-times"></i> Cancel</button>` : ''}
+          ${b.status === 'confirmed' ? `<button class="btn btn-ghost btn-sm" onclick="rebook('${b.turf_id}','${(b.turf_name||'').replace(/'/g,"\\'")}')"><i class="fas fa-redo"></i> Rebook</button>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  async function cancel(id) {
+    if (!confirm('Cancel this booking?')) return;
+    try {
+      await api.delete('/api/bookings/' + id);
+      toast('Booking cancelled', 'info');
+      load();
+    } catch(e) { toast(e.message, 'error'); }
+  }
+
+  function rebook(turfId, turfName) {
+    localStorage.setItem('ts_turfId', String(turfId));
+    localStorage.setItem('ts_turfName', turfName);
+    window.location.href = 'booking.html';
+  }
+
+  function saveProfile() {
+    const name = document.getElementById('editName').value.trim();
+    if (!name) { toast('Name cannot be empty', 'warning'); return; }
+    const u = Auth.getUser();
+    u.name = name;
+    localStorage.setItem('ts_user', JSON.stringify(u));
+    document.getElementById('editModal').classList.remove('open');
+    toast('Profile updated!');
+    location.reload();
+  }
+
+  // Open wishlist tab if redirected from dashboard
+  if (localStorage.getItem('ts_wishlistTab') === '1') {
+    localStorage.removeItem('ts_wishlistTab');
+    // handled on home page
+  }
+
+  load();
+</script>
+</body>
+</html>

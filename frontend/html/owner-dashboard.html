@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Owner Dashboard – TurfSphere</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="container">
+  <div class="page-hdr">
+    <div>
+      <h2 id="ownerWelcome">Owner Dashboard</h2>
+      <p>Manage your turfs and bookings</p>
+    </div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;">
+      <button class="btn btn-green" onclick="openModal()"><i class="fas fa-plus"></i> Add New Turf</button>
+      <button class="btn btn-danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat"><div class="stat-ic si-green"><i class="fas fa-futbol"></i></div><div><div class="stat-val" id="sTurfs">0</div><div class="stat-lbl">My Turfs</div></div></div>
+    <div class="stat"><div class="stat-ic si-blue"><i class="fas fa-calendar-check"></i></div><div><div class="stat-val" id="sBooks">0</div><div class="stat-lbl">Total Bookings</div></div></div>
+    <div class="stat"><div class="stat-ic si-warn"><i class="fas fa-clock"></i></div><div><div class="stat-val" id="sPend">0</div><div class="stat-lbl">Pending Approval</div></div></div>
+    <div class="stat"><div class="stat-ic si-orange"><i class="fas fa-rupee-sign"></i></div><div><div class="stat-val" id="sRev">₹0</div><div class="stat-lbl">Revenue</div></div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('turfs',this)"><i class="fas fa-futbol"></i> My Turfs</button>
+    <button class="tab" onclick="switchTab('bookings',this)"><i class="fas fa-calendar"></i> Bookings</button>
+  </div>
+
+  <!-- My Turfs Tab -->
+  <div id="tab-turfs">
+    <div id="turfGrid" class="grid-turfs">
+      <div style="grid-column:1/-1;display:flex;justify-content:center;"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- Bookings Tab -->
+  <div id="tab-bookings" style="display:none;">
+    <div class="card">
+      <div class="section-title"><i class="fas fa-calendar" style="color:var(--green)"></i> All Bookings for Your Turfs</div>
+      <div id="ownerBookings"><div style="display:flex;justify-content:center;padding:30px;"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Turf Modal -->
+<div class="modal-bg" id="turfModal">
+  <div class="modal" style="max-width:540px;">
+    <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    <h3 id="modalTitle" style="margin-bottom:20px;">Add New Turf</h3>
+
+    <input type="hidden" id="editId">
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Turf Name</label>
+        <input type="text" id="tName" class="form-input" placeholder="e.g. Green Arena">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location / City</label>
+        <input type="text" id="tLoc" class="form-input" placeholder="e.g. Indore">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Sport</label>
+        <select id="tSport" class="form-select">
+          <option value="">— Select sport —</option>
+          <option>Football</option><option>Cricket</option>
+          <option>Tennis</option><option>Basketball</option><option>Badminton</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Price per Hour (₹)</label>
+        <input type="number" id="tPrice" class="form-input" placeholder="e.g. 800" min="1">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Turf Images</label>
+      <!-- Upload from device -->
+      <div id="imgUploadArea" style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:8px;background:var(--navy);"
+        onclick="document.getElementById('imgFileInput').click()"
+        ondragover="event.preventDefault();this.style.borderColor='var(--green)'"
+        ondragleave="this.style.borderColor='var(--border)'"
+        ondrop="handleImgDrop(event)">
+        <i class="fas fa-cloud-upload-alt" style="font-size:22px;color:var(--muted);margin-bottom:6px;display:block;"></i>
+        <p style="font-size:13px;color:var(--muted);margin:0;">Click or drag images here to upload</p>
+        <p style="font-size:11.5px;color:var(--border);margin:3px 0 0;">JPG, PNG, WebP — up to 5 MB each</p>
+      </div>
+      <input type="file" id="imgFileInput" accept="image/*" multiple style="display:none" onchange="handleImgFiles(this.files)">
+      <!-- Preview strip -->
+      <div id="imgPreviewStrip" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;"></div>
+      <!-- Fallback URL input -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap;">or paste a URL</span>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      <input type="text" id="tImg" class="form-input" placeholder="https://... (optional)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea id="tDesc" class="form-textarea" placeholder="Describe your turf — facilities, size, surface quality…"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amenities <span style="color:var(--muted);text-transform:none;font-size:11px;">(comma-separated)</span></label>
+      <input type="text" id="tAmen" class="form-input" placeholder="e.g. Floodlights, Parking, Changing Rooms">
+    </div>
+
+    <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--r-sm);padding:10px 13px;margin-bottom:16px;font-size:12.5px;color:var(--warning);">
+      <i class="fas fa-info-circle"></i> New turfs require <strong>Admin approval</strong> before they appear publicly.
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-ghost" onclick="closeModal()" style="flex:1;border-radius:var(--r-sm);">Cancel</button>
+      <button class="btn btn-green" id="saveTurfBtn" onclick="saveTurf()" style="flex:2;border-radius:var(--r-sm);">
+        <i class="fas fa-check"></i> Submit for Approval
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  guard('owner');
+  buildNav();
+
+  const user = Auth.getUser();
+  if (user) document.getElementById('ownerWelcome').textContent = `Welcome, ${user.name} 🏟️`;
+
+  let allTurfs = [], allBookings = [];
+
+  async function loadAll() {
+    try {
+      [allTurfs, allBookings] = await Promise.all([
+        api.get('/api/turfs/owner/mine'),
+        api.get('/api/bookings/owner/all')
+      ]);
+      updateStats();
+      renderTurfs();
+      renderBookings();
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  function updateStats() {
+    document.getElementById('sTurfs').textContent = allTurfs.length;
+    document.getElementById('sBooks').textContent = allBookings.length;
+    document.getElementById('sPend').textContent  = allTurfs.filter(t=>t.status==='pending').length;
+    const rev = allBookings.filter(b=>b.status==='confirmed').reduce((s,b)=>s+b.total_price,0);
+    document.getElementById('sRev').textContent = '₹' + Math.round(rev).toLocaleString('en-IN');
+  }
+
+  function renderTurfs() {
+    const g = document.getElementById('turfGrid');
+    if (!allTurfs.length) {
+      g.innerHTML = `<div class="empty" style="grid-column:1/-1"><i class="fas fa-plus-circle"></i><h3>No turfs yet</h3><p>Click "Add New Turf" to list your first turf</p></div>`;
+      return;
+    }
+    g.innerHTML = allTurfs.map(t => {
+      const img = parseFirstImage(t.image);
+      const si  = sportIcon(t.sport);
+      const statusBadge = t.status === 'approved' ? 'approved' : t.status === 'rejected' ? 'rejected' : 'pending';
+      const statusLabel = { approved:'✓ Approved', pending:'⏳ Pending', rejected:'✗ Rejected' }[t.status];
+      return `
+      <div class="turf-card">
+        <div class="tc-img-wrap">
+          <img class="tc-img" src="${img}" alt="${t.name}" loading="lazy">
+          <div class="tc-badge"><i class="fas ${si}"></i> ${t.sport}</div>
+          <div class="tc-status-badge ${statusBadge}">${statusLabel}</div>
+        </div>
+        <div class="tc-body">
+          <div class="tc-name">${t.name}</div>
+          <div class="tc-meta">
+            <span><i class="fas fa-map-marker-alt"></i> ${t.location}</span>
+            <span><i class="fas fa-star"></i> ${t.rating}</span>
+          </div>
+          <div class="tc-price">₹${t.price} <small>/ hr</small></div>
+          ${t.status === 'rejected' && t.reject_reason ? `<p style="font-size:12px;color:var(--danger);margin-top:4px;"><i class="fas fa-exclamation-circle"></i> ${t.reject_reason}</p>` : ''}
+          <div class="tc-actions">
+            <button class="btn btn-warn btn-sm" onclick="editTurf('${t.id}')"><i class="fas fa-edit"></i> Edit</button>
+            ${!t.is_default ? `<button class="btn btn-danger btn-sm" onclick="delTurf('${t.id}','${t.name.replace(/'/g,"\\'")}')"><i class="fas fa-trash"></i></button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderBookings() {
+    const el = document.getElementById('ownerBookings');
+    if (!allBookings.length) {
+      el.innerHTML = `<div class="empty"><i class="fas fa-calendar-times"></i><h3>No bookings yet</h3><p>Bookings for your turfs will appear here once customers start booking</p></div>`;
+      return;
+    }
+    el.innerHTML = allBookings.map(b => `
+      <div class="bk-card">
+        <div class="bk-main">
+          <div class="bk-title">${b.turf_name} <span style="font-size:12px;color:var(--muted);">by ${b.user_name||b.contact_name}</span></div>
+          <div class="bk-detail">
+            <i class="fas fa-calendar" style="color:var(--muted);width:12px;"></i> ${fmtDate(b.date)} &nbsp;
+            <i class="fas fa-clock" style="color:var(--muted);width:12px;"></i> ${fmtTime(b.start_time)} – ${fmtTime(b.end_time)} &nbsp;
+            <i class="fas fa-users" style="color:var(--muted);width:12px;"></i> ${b.players} players
+          </div>
+          <div class="bk-detail">
+            <i class="fas fa-phone" style="color:var(--muted);width:12px;"></i> ${b.phone} &nbsp;
+            <i class="fas fa-rupee-sign" style="color:var(--muted);width:12px;"></i> ₹${b.total_price} &nbsp; · #${b.id}
+          </div>
+        </div>
+        <span class="bk-status ${b.status}">${b.status.charAt(0).toUpperCase()+b.status.slice(1)}</span>
+      </div>`).join('');
+  }
+
+  function switchTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t===el));
+    document.getElementById('tab-turfs').style.display    = name==='turfs'    ? 'block' : 'none';
+    document.getElementById('tab-bookings').style.display = name==='bookings' ? 'block' : 'none';
+  }
+
+  // Modal
+  function openModal(turf = null) {
+    document.getElementById('editId').value   = turf ? turf.id : '';
+    document.getElementById('tName').value    = turf ? turf.name : '';
+    document.getElementById('tLoc').value     = turf ? turf.location : '';
+    document.getElementById('tSport').value   = turf ? turf.sport : '';
+    document.getElementById('tPrice').value   = turf ? turf.price : '';
+    document.getElementById('tImg').value     = turf ? (turf.image||'') : '';
+    document.getElementById('tDesc').value    = turf ? (turf.description||'') : '';
+    let am = [];
+    try { am = JSON.parse(turf?.amenities||'[]'); } catch(e) {}
+    document.getElementById('tAmen').value    = am.join(', ');
+    document.getElementById('modalTitle').textContent = turf ? 'Edit Turf' : 'Add New Turf';
+    document.getElementById('saveTurfBtn').innerHTML  = turf
+      ? '<i class="fas fa-save"></i> Update Turf'
+      : '<i class="fas fa-check"></i> Submit for Approval';
+    // Reset image upload; pre-populate with existing image if editing
+    resetImgUpload(turf ? turf.image : null);
+    document.getElementById('turfModal').classList.add('open');
+  }
+  function closeModal() { document.getElementById('turfModal').classList.remove('open'); }
+
+  async function saveTurf() {
+    const id    = document.getElementById('editId').value;
+    const name  = document.getElementById('tName').value.trim();
+    const loc   = document.getElementById('tLoc').value.trim();
+    const sport = document.getElementById('tSport').value;
+    const price = document.getElementById('tPrice').value;
+    const desc  = document.getElementById('tDesc').value.trim();
+    const amenRaw = document.getElementById('tAmen').value;
+    const amenities = amenRaw ? amenRaw.split(',').map(s=>s.trim()).filter(Boolean) : [];
+
+    // Resolve image: uploaded base64 images take priority, then URL field
+    let img = document.getElementById('tImg').value.trim();
+    if (uploadedImages.length > 0) {
+      // Join multiple images as comma-separated (supports carousel in details.html)
+      img = uploadedImages.join(',');
+    }
+
+    if (!name||!loc||!sport||!price||!desc) { toast('Fill all required fields','error'); return; }
+    const btn = document.getElementById('saveTurfBtn');
+    setLoading(btn, true);
+    try {
+      const body = { name, location:loc, sport, price:parseFloat(price), image:img||undefined, description:desc, amenities };
+      if (id) { await api.put('/api/turfs/'+id, body); toast('Turf updated, pending re-approval'); }
+      else    { await api.post('/api/turfs', body); toast('Turf submitted for admin approval!'); }
+      closeModal();
+      loadAll();
+    } catch(e) { toast(e.message,'error'); }
+    setLoading(btn, false);
+  }
+
+  function editTurf(id) {
+    const t = allTurfs.find(x=>String(x.id)===String(id));
+    if (t) openModal(t);
+    else toast('Could not find turf to edit', 'error');
+  }
+
+  async function delTurf(id, name) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    try {
+      await api.delete('/api/turfs/'+id);
+      toast('Turf deleted');
+      loadAll();
+    } catch(e) { toast(e.message,'error'); }
+  }
+
+  // ── Image upload helpers ──────────────────────────────────────
+  let uploadedImages = []; // array of base64 data-URLs or http URLs
+
+  function handleImgFiles(files) {
+    Array.from(files).forEach(file => {
+      if (!file.type.startsWith('image/')) { toast('Only image files allowed', 'warning'); return; }
+      if (file.size > 5 * 1024 * 1024) { toast(`${file.name} exceeds 5 MB`, 'warning'); return; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        uploadedImages.push(e.target.result);
+        renderImgPreviews();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function handleImgDrop(e) {
+    e.preventDefault();
+    document.getElementById('imgUploadArea').style.borderColor = 'var(--border)';
+    handleImgFiles(e.dataTransfer.files);
+  }
+
+  function renderImgPreviews() {
+    const strip = document.getElementById('imgPreviewStrip');
+    strip.innerHTML = uploadedImages.map((src, i) => `
+      <div style="position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:2px solid var(--border);">
+        <img src="${src}" style="width:100%;height:100%;object-fit:cover;">
+        <button onclick="removeImg(${i})" title="Remove" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);border:none;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>`).join('');
+    document.getElementById('imgUploadArea').style.borderColor = uploadedImages.length ? 'var(--green)' : 'var(--border)';
+  }
+
+  function removeImg(idx) { uploadedImages.splice(idx, 1); renderImgPreviews(); }
+
+  function resetImgUpload(existingImg) {
+    uploadedImages = [];
+    document.getElementById('imgPreviewStrip').innerHTML = '';
+    document.getElementById('imgFileInput').value = '';
+    document.getElementById('imgUploadArea').style.borderColor = 'var(--border)';
+    // If editing, show existing image as preview
+    if (existingImg && existingImg.startsWith('http')) {
+      uploadedImages = [existingImg];
+      renderImgPreviews();
+    }
+  }
+
+  // Close modal on background click
+  document.getElementById('turfModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+
+  loadAll();
+</script>
+</body>
+</html>
