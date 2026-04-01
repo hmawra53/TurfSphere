@@ -1,5 +1,5 @@
 // js/app.js — TurfSphere v2 Global Utilities
-const BASE = '';   // same-origin; change to 'http://localhost:3000' if serving separately
+const BASE = 'https://turfsphere.onrender.com';   // same-origin; change to 'http://localhost:3000' if serving separately
 
 // ── Auth ──────────────────────────────────────────────────────
 const Auth = {
